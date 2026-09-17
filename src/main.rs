@@ -6,6 +6,7 @@ mod logging;
 mod registry;
 mod utils;
 mod wrappers;
+// mod windows_bindings;
 
 use std::{error::Error, sync::Arc};
 

@@ -1,0 +1,10 @@
+--filter
+CoCreateInstance
+CoInitializeEx
+CoUninitialize
+CoTaskMemFree
+CLSCTX_ALL
+COINIT_MULTITHREADED
+STGM_READ
+PROPVARIANT
+PropVariantClear

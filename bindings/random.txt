@@ -1,0 +1,3 @@
+--filter
+IPropertyStore
+S_OK

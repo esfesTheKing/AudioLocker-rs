@@ -9,6 +9,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             .set_language(0x0009)
             .set_manifest_file("assets/manifest.xml")
             .compile()?;
+
+        for bindgen_filename in ["audio", "com", "random"] {
+            let src_bindgen_filename = format!("bindings/{bindgen_filename}.txt");
+            let dst_bindgen_filename = format!("src/bindings/{bindgen_filename}.rs");
+
+            println!("cargo:rerun-if-changed={src_bindgen_filename}");
+            println!("cargo:rerun-if-changed={dst_bindgen_filename}");
+            windows_bindgen::bindgen(["--out", &dst_bindgen_filename, "--flat", "--etc", &src_bindgen_filename]);
+        }
     }
 
     Ok(())
