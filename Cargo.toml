@@ -1,0 +1,42 @@
+[package]
+name = "audio-locker"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+crossbeam-channel = "0.5.15"
+log = "0.4.29"
+named-lock = "0.4.1"
+notify = { version = "8.2.0", default-features = false }
+open = "5.3.5"
+parking_lot = "0.12.5"
+rfd = { version = "0.17.2", default-features = false }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+sysinfo = "0.38.3"
+tao = "0.37.0"
+tracing = "0.1.44"
+tracing-appender = "0.2.5"
+tracing-log = "0.2.0"
+tracing-subscriber = "0.3.23"
+tray-icon = "0.21.3"
+windows = { version = "0.62.2", features = [
+    "Win32_System_Com",
+    "Win32_Media_Audio",
+    "Win32_UI_Shell_PropertiesSystem",
+    "Win32_Devices_FunctionDiscovery",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_Foundation",
+    "Win32_UI_Shell",
+    "Win32_Storage_EnhancedStorage",
+] }
+windows-core = "0.62.2"
+windows-registry = "0.6.1"
+
+[build-dependencies]
+winresource = "0.1.30"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+strip = true
