@@ -1,7 +1,5 @@
 use std::error::Error;
 
-extern crate winresource;
-
 fn main() -> Result<(), Box<dyn Error>> {
     if std::env::var("CARGO_CFG_TARGET_OS")? == "windows" {
         let mut res = winresource::WindowsResource::new();
