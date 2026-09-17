@@ -30,7 +30,7 @@ windows = { version = "0.62.2", features = [
     "Win32_UI_Shell",
     "Win32_Storage_EnhancedStorage",
 ] }
-windows-core = "0.62.2"
+windows-core = "0.100"
 windows-link = "0.100.0"
 windows-registry = "0.6.1"
 
