@@ -1,4 +1,4 @@
-use windows::Win32::System::Com::CoTaskMemFree;
+use crate::bindings::com::CoTaskMemFree;
 use windows_core::PWSTR;
 
 pub struct RaiiPwstr(pub PWSTR);
@@ -12,7 +12,7 @@ impl RaiiPwstr {
 impl Drop for RaiiPwstr {
     fn drop(&mut self) {
         unsafe {
-            CoTaskMemFree(Some(self.0.as_ptr().cast()));
+            CoTaskMemFree(self.0.as_ptr().cast());
         }
     }
 }

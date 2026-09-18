@@ -1,5 +1,4 @@
-use windows::Win32::Media::Audio::IAudioSessionEnumerator;
-
+use crate::bindings::audio::IAudioSessionEnumerator;
 use crate::wrappers::AudioSession;
 
 pub struct AudioSessionCollection {

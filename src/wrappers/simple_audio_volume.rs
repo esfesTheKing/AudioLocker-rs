@@ -1,4 +1,4 @@
-use windows::Win32::Media::Audio::ISimpleAudioVolume;
+use crate::bindings::audio::ISimpleAudioVolume;
 
 #[derive(Debug)]
 pub struct SimpleAudioVolume {
@@ -11,7 +11,7 @@ impl SimpleAudioVolume {
     }
 
     pub unsafe fn set_volume(&self, v: f32) -> windows_core::Result<()> {
-        unsafe { self.audio_volume.SetMasterVolume(v, &windows_core::GUID::zeroed()) }
+        unsafe { self.audio_volume.SetMasterVolume(v, &windows_core::GUID::zeroed()).ok() }
     }
 
     #[allow(unused)]
@@ -26,11 +26,11 @@ impl SimpleAudioVolume {
 
     #[allow(unused)]
     pub unsafe fn mute(&self) -> windows_core::Result<()> {
-        unsafe { self.audio_volume.SetMute(true, &windows_core::GUID::zeroed()) }
+        unsafe { self.audio_volume.SetMute(true, &windows_core::GUID::zeroed()).ok() }
     }
 
     #[allow(unused)]
     pub unsafe fn unmute(&self) -> windows_core::Result<()> {
-        unsafe { self.audio_volume.SetMute(false, &windows_core::GUID::zeroed()) }
+        unsafe { self.audio_volume.SetMute(false, &windows_core::GUID::zeroed()).ok() }
     }
 }

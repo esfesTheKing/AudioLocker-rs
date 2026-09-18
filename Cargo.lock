@@ -51,7 +51,6 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
  "tray-icon",
- "windows 0.62.2",
  "windows-bindgen",
  "windows-core 0.100.0",
  "windows-link 0.100.0",

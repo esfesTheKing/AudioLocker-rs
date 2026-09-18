@@ -1,12 +1,10 @@
 use std::sync::Arc;
 
-use windows::Win32::{
-    Media::Audio::{
-        DEVICE_STATE_ACTIVE, IMMDeviceEnumerator, IMMNotificationClient, MMDeviceEnumerator as MMDeviceEnumeratorGuid,
-        eRender,
-    },
-    System::Com::{CLSCTX_ALL, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx, CoUninitialize},
+use crate::bindings::audio::{
+    DEVICE_STATE_ACTIVE, IMMDeviceEnumerator, IMMNotificationClient, MMDeviceEnumerator as MMDeviceEnumeratorGuid,
+    eRender,
 };
+use crate::bindings::com::{CLSCTX_ALL, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx, CoUninitialize};
 use windows_core::PCWSTR;
 
 use crate::{
@@ -23,9 +21,9 @@ pub struct DeviceEnumerator {
 impl DeviceEnumerator {
     pub unsafe fn new(config: Arc<Configuration>) -> windows_core::Result<Self> {
         unsafe {
-            CoInitializeEx(None, COINIT_MULTITHREADED).ok()?;
+            CoInitializeEx(None, COINIT_MULTITHREADED as u32).ok()?;
 
-            let enumerator: IMMDeviceEnumerator = CoCreateInstance(&MMDeviceEnumeratorGuid, None, CLSCTX_ALL)?;
+            let enumerator: IMMDeviceEnumerator = CoCreateInstance(&MMDeviceEnumeratorGuid, None, CLSCTX_ALL as u32)?;
 
             Ok(Self { config, enumerator })
         }
@@ -55,7 +53,9 @@ impl DeviceEnumerator {
 
     pub unsafe fn devices(&self) -> windows_core::Result<DeviceCollection> {
         unsafe {
-            let collection = self.enumerator.EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE)?;
+            let collection = self
+                .enumerator
+                .EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE as u32)?;
 
             Ok(DeviceCollection::new(collection, self.config.clone()))
         }
@@ -63,7 +63,7 @@ impl DeviceEnumerator {
 
     pub unsafe fn register_client(&self, client: Option<&IMMNotificationClient>) -> windows_core::Result<()> {
         unsafe {
-            self.enumerator.RegisterEndpointNotificationCallback(client)?;
+            self.enumerator.RegisterEndpointNotificationCallback(client).ok()?;
         }
 
         Ok(())
@@ -71,7 +71,7 @@ impl DeviceEnumerator {
 
     pub unsafe fn unregister_client(&self, client: Option<&IMMNotificationClient>) -> windows_core::Result<()> {
         unsafe {
-            self.enumerator.UnregisterEndpointNotificationCallback(client)?;
+            self.enumerator.UnregisterEndpointNotificationCallback(client).ok()?;
         }
 
         Ok(())

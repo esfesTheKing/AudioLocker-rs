@@ -6,16 +6,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::bindings::shell::{IShellItem2, PKEY_Software_ProductName, SHCreateItemFromParsingName};
+use crate::constants::DEFAULT_VOLUME_LEVEL;
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
 use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, RefreshKind, System};
-use windows::Win32::{
-    Storage::EnhancedStorage::PKEY_Software_ProductName,
-    UI::Shell::{IShellItem2, SHCreateItemFromParsingName},
-};
 use windows_core::HSTRING;
-
-use crate::constants::DEFAULT_VOLUME_LEVEL;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AudioSessionConfiguration {

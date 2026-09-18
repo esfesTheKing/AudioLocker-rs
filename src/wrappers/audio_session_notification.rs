@@ -1,7 +1,7 @@
-use windows::Win32::Media::Audio::{IAudioSessionNotification, IAudioSessionNotification_Impl};
-use windows_core::implement;
-
+use crate::bindings::audio::{IAudioSessionControl, IAudioSessionNotification, IAudioSessionNotification_Impl};
 use crate::wrappers::{AudioSession, audio_session_events_handler::AudioSessionEvents};
+
+use windows_core::implement;
 
 #[implement(IAudioSessionNotification)]
 pub struct AudioSessionNotification {
@@ -15,10 +15,7 @@ impl AudioSessionNotification {
 }
 
 impl IAudioSessionNotification_Impl for AudioSessionNotification_Impl {
-    fn OnSessionCreated(
-        &self,
-        newsession: windows_core::Ref<windows::Win32::Media::Audio::IAudioSessionControl>,
-    ) -> windows_core::Result<()> {
+    fn OnSessionCreated(&self, newsession: windows_core::Ref<IAudioSessionControl>) -> windows_core::Result<()> {
         if let Some(interface) = newsession.cloned() {
             let session = AudioSession::new(interface)?;
 

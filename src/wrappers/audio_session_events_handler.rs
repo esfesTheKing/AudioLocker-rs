@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use windows::{
-    Win32::Media::Audio::{AudioSessionStateExpired, IAudioSessionEvents, IAudioSessionEvents_Impl},
-    core::implement,
+use crate::bindings::audio::{
+    AudioSessionDisconnectReason, AudioSessionState, AudioSessionStateExpired, IAudioSessionEvents,
+    IAudioSessionEvents_Impl,
 };
-
 use crate::wrappers::AudioSession;
+use windows_core::implement;
 
 pub enum AudioSessionEvents {
     NewSession(AudioSession),
@@ -87,7 +87,7 @@ impl IAudioSessionEvents_Impl for AudioSessionEventsHandler_Impl {
         Ok(())
     }
 
-    fn OnStateChanged(&self, newstate: windows::Win32::Media::Audio::AudioSessionState) -> windows_core::Result<()> {
+    fn OnStateChanged(&self, newstate: AudioSessionState) -> windows_core::Result<()> {
         if newstate == AudioSessionStateExpired {
             // This method only failes when the receiver is disconnected, this should not happen here :)
             let _ = self.sender.send(AudioSessionEvents::SessionClosed(self.name.clone()));
@@ -96,10 +96,7 @@ impl IAudioSessionEvents_Impl for AudioSessionEventsHandler_Impl {
         Ok(())
     }
 
-    fn OnSessionDisconnected(
-        &self,
-        _disconnectreason: windows::Win32::Media::Audio::AudioSessionDisconnectReason,
-    ) -> windows_core::Result<()> {
+    fn OnSessionDisconnected(&self, _disconnectreason: AudioSessionDisconnectReason) -> windows_core::Result<()> {
         // This method only failes when the receiver is disconnected, this should not happen here :)
         let _ = self.sender.send(AudioSessionEvents::SessionClosed(self.name.clone()));
 

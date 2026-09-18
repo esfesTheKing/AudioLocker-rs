@@ -1,17 +1,13 @@
 use std::sync::Arc;
 
-use windows::Win32::{
-    Devices::FunctionDiscovery::PKEY_Device_FriendlyName,
-    Media::Audio::{EDataFlow, IMMDevice, IMMEndpoint},
-    System::Com::{
-        CLSCTX_ALL, STGM_READ,
-        StructuredStorage::{PROPVARIANT, PropVariantClear},
-    },
-    UI::Shell::PropertiesSystem::IPropertyStore,
+use crate::bindings::audio::{
+    EDataFlow, IMMDevice, IMMEndpoint, IPropertyStore, PKEY_Device_FriendlyName, PropVariantClear,
+    PropVariantToStringAlloc,
 };
-use windows_core::Interface;
-
+use crate::bindings::com::{CLSCTX_ALL, STGM_READ};
+use crate::wrappers::utils::RaiiPwstr;
 use crate::{configuration::Configuration, wrappers::AudioSessionManager};
+use windows_core::Interface;
 
 #[derive(Debug)]
 pub struct DeviceSlim {
@@ -31,21 +27,21 @@ unsafe impl Sync for Device {}
 impl DeviceSlim {
     pub unsafe fn new(device: IMMDevice) -> windows_core::Result<Self> {
         unsafe {
-            let property_store = device.OpenPropertyStore(STGM_READ)?;
+            let property_store = device.OpenPropertyStore(STGM_READ as u32)?;
 
             Ok(Self { property_store, device })
         }
     }
 
     pub unsafe fn name(&self) -> windows_core::Result<String> {
-        let mut prop_variant = unsafe { self.property_store.GetValue(&PKEY_Device_FriendlyName) }?;
-        let return_value = prop_variant.to_string();
-
         unsafe {
-            PropVariantClear(&mut prop_variant as *mut PROPVARIANT)?;
-        }
+            let mut prop_variant = self.property_store.GetValue(&PKEY_Device_FriendlyName)?;
+            let pwstr = RaiiPwstr(PropVariantToStringAlloc(&prop_variant)?);
 
-        Ok(return_value)
+            PropVariantClear(&mut prop_variant).ok()?;
+
+            pwstr.to_string()
+        }
     }
 }
 
@@ -54,7 +50,7 @@ impl Device {
         unsafe {
             let slim = DeviceSlim::new(device)?;
 
-            let interface = slim.device.Activate(CLSCTX_ALL, None)?;
+            let interface = slim.device.Activate(CLSCTX_ALL as u32, None)?;
             let session_manager = AudioSessionManager::new(slim.name()?, interface, config)?;
 
             Ok(Self { slim, session_manager })

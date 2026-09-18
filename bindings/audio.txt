@@ -22,6 +22,7 @@ PKEY_Device_FriendlyName
 eRender
 EDataFlow
 ERole
+S_OK
 AudioSessionStateExpired
 DEVICE_STATE_ACTIVE
 DEVICE_STATE_NOTPRESENT

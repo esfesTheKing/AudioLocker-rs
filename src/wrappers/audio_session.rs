@@ -1,9 +1,6 @@
-use windows::Win32::{
-    Foundation::S_OK,
-    Media::Audio::{IAudioSessionControl, IAudioSessionControl2, IAudioSessionEvents},
-};
 use windows_core::Interface;
 
+use crate::bindings::audio::{IAudioSessionControl, IAudioSessionControl2, IAudioSessionEvents, S_OK};
 use crate::wrappers::{AudioSessionEventsHandler, SimpleAudioVolume, utils::RaiiPwstr};
 
 #[derive(Debug)]
@@ -78,7 +75,11 @@ impl AudioSession {
         if self.events_handler.is_none() {
             let events_handler = Some(IAudioSessionEvents::from(events_handler));
 
-            unsafe { self.session.RegisterAudioSessionNotification(events_handler.as_ref())? }
+            unsafe {
+                self.session
+                    .RegisterAudioSessionNotification(events_handler.as_ref())
+                    .ok()?
+            }
 
             self.events_handler = events_handler;
         }
