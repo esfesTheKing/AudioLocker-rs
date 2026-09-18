@@ -20,20 +20,12 @@ tracing-appender = "0.2.5"
 tracing-log = "0.2.0"
 tracing-subscriber = "0.3.23"
 tray-icon = "0.21.3"
-windows = { version = "0.62.2", features = [
-    "Win32_System_Com",
-    "Win32_Media_Audio",
-    "Win32_UI_Shell_PropertiesSystem",
-    "Win32_Devices_FunctionDiscovery",
-    "Win32_System_Com_StructuredStorage",
-    "Win32_Foundation",
-    "Win32_UI_Shell",
-    "Win32_Storage_EnhancedStorage",
-] }
-windows-core = "0.62.2"
+windows-core = "0.100"
+windows-link = "0.100.0"
 windows-registry = "0.6.1"
 
 [build-dependencies]
+windows-bindgen = "0.100.0"
 winresource = "0.1.30"
 
 [profile.release]

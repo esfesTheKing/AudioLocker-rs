@@ -5,9 +5,9 @@ use std::{
 };
 
 use parking_lot::RwLock;
-use windows::Win32::Media::Audio::{IAudioSessionManager2, IAudioSessionNotification};
 
 use crate::{
+    bindings::audio::{IAudioSessionManager2, IAudioSessionNotification},
     configuration::Configuration,
     wrappers::{
         AudioSession, AudioSessionCollection, AudioSessionEventsHandler, AudioSessionNotification,
@@ -130,7 +130,7 @@ impl AudioSessionManager {
         if self.notification.is_none() {
             let interface = Some(IAudioSessionNotification::from(notification));
 
-            unsafe { self.manager.RegisterSessionNotification(interface.as_ref())? }
+            unsafe { self.manager.RegisterSessionNotification(interface.as_ref()).ok()? }
 
             self.notification = interface;
         }
@@ -149,7 +149,7 @@ impl AudioSessionManager {
             return Ok(());
         }
 
-        unsafe { self.manager.UnregisterSessionNotification(notification.as_ref())? }
+        unsafe { self.manager.UnregisterSessionNotification(notification.as_ref()).ok()? }
 
         log::debug!("[{}] Unregistering session notification handler", self.device_name);
         Ok(())

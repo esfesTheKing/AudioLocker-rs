@@ -1,0 +1,4 @@
+--filter
+IShellItem2
+SHCreateItemFromParsingName
+PKEY_Software_ProductName

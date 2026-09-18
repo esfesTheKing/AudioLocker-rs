@@ -1,10 +1,12 @@
-use windows::Win32::Media::Audio::{
-    DEVICE_STATE_ACTIVE, DEVICE_STATE_NOTPRESENT, DEVICE_STATE_UNPLUGGED, IMMNotificationClient,
-    IMMNotificationClient_Impl,
-};
 use windows_core::implement;
 
-use crate::wrappers::MMEvent;
+use crate::{
+    bindings::audio::{
+        DEVICE_STATE_ACTIVE, DEVICE_STATE_NOTPRESENT, DEVICE_STATE_UNPLUGGED, EDataFlow, ERole, IMMNotificationClient,
+        IMMNotificationClient_Impl, PROPERTYKEY,
+    },
+    wrappers::MMEvent,
+};
 
 #[implement(IMMNotificationClient)]
 pub struct MMNotificationClient {
@@ -18,12 +20,8 @@ impl MMNotificationClient {
 }
 
 impl IMMNotificationClient_Impl for MMNotificationClient_Impl {
-    fn OnDeviceStateChanged(
-        &self,
-        pwstrdeviceid: &windows_core::PCWSTR,
-        dwnewstate: windows::Win32::Media::Audio::DEVICE_STATE,
-    ) -> windows_core::Result<()> {
-        match dwnewstate {
+    fn OnDeviceStateChanged(&self, pwstrdeviceid: &windows_core::PCWSTR, dwnewstate: u32) -> windows_core::Result<()> {
+        match dwnewstate as i32 {
             DEVICE_STATE_UNPLUGGED | DEVICE_STATE_NOTPRESENT => self.OnDeviceRemoved(pwstrdeviceid),
             DEVICE_STATE_ACTIVE => self.OnDeviceAdded(pwstrdeviceid),
             _ => {
@@ -64,8 +62,8 @@ impl IMMNotificationClient_Impl for MMNotificationClient_Impl {
     #[allow(unused_variables)]
     fn OnDefaultDeviceChanged(
         &self,
-        flow: windows::Win32::Media::Audio::EDataFlow,
-        role: windows::Win32::Media::Audio::ERole,
+        flow: EDataFlow,
+        role: ERole,
         pwstrdefaultdeviceid: &windows_core::PCWSTR,
     ) -> windows_core::Result<()> {
         Ok(())
@@ -75,7 +73,7 @@ impl IMMNotificationClient_Impl for MMNotificationClient_Impl {
     fn OnPropertyValueChanged(
         &self,
         pwstrdeviceid: &windows_core::PCWSTR,
-        key: &windows::Win32::Foundation::PROPERTYKEY,
+        key: &PROPERTYKEY,
     ) -> windows_core::Result<()> {
         Ok(())
     }

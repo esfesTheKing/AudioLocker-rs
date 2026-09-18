@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod bindings;
 mod configuration;
 mod constants;
 mod logging;
@@ -148,17 +149,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                         let icon = get_icon_for_theme(window.theme());
 
-                        let result = icon.with(|icon| {
-                            let result = match tray_icon.set_icon(Some(icon.clone())) {
-                                Ok(_) => Some(()),
-                                Err(error) => {
-                                    log::warn!("Error occured while trying to update the icon: {:#?}", error);
+                        let result = icon.with(|icon| match tray_icon.set_icon(Some(icon.clone())) {
+                            Ok(_) => Some(()),
+                            Err(error) => {
+                                log::warn!("Error occured while trying to update the icon: {:#?}", error);
 
-                                    None
-                                }
-                            };
-
-                            result
+                                None
+                            }
                         });
 
                         if result.is_some() {
