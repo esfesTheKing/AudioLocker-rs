@@ -28,7 +28,7 @@ pub fn update_enabled_on_startup() -> Result<bool, Box<dyn Error>> {
         Err(_) => {
             key.set_hstring(
                 APPLICATION_NAME,
-                &windows_core::HSTRING::from(std::env::current_exe()?.as_path()),
+                &windows_registry::HSTRING::from(std::env::current_exe()?.as_path()),
             )?;
 
             Ok(true)
