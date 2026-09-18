@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
-use crate::bindings::audio::{
-    AudioSessionDisconnectReason, AudioSessionState, AudioSessionStateExpired, IAudioSessionEvents,
-    IAudioSessionEvents_Impl,
-};
-use crate::wrappers::AudioSession;
 use windows_core::implement;
+
+use crate::{
+    bindings::audio::{
+        AudioSessionDisconnectReason, AudioSessionState, AudioSessionStateExpired, IAudioSessionEvents,
+        IAudioSessionEvents_Impl,
+    },
+    wrappers::AudioSession,
+};
 
 pub enum AudioSessionEvents {
     NewSession(AudioSession),

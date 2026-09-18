@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
-use crate::bindings::audio::{
-    DEVICE_STATE_ACTIVE, IMMDeviceEnumerator, IMMNotificationClient, MMDeviceEnumerator as MMDeviceEnumeratorGuid,
-    eRender,
-};
-use crate::bindings::com::{CLSCTX_ALL, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx, CoUninitialize};
 use windows_core::PCWSTR;
 
 use crate::{
+    bindings::{
+        audio::{
+            DEVICE_STATE_ACTIVE, IMMDeviceEnumerator, IMMNotificationClient,
+            MMDeviceEnumerator as MMDeviceEnumeratorGuid, eRender,
+        },
+        com::{CLSCTX_ALL, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx, CoUninitialize},
+    },
     configuration::Configuration,
     constants::UTF16_NULL_TERMINATOR_LITTERAL,
     wrappers::{Device, DeviceCollection, DeviceSlim},

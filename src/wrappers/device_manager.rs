@@ -2,8 +2,8 @@ use std::{collections::HashMap, sync::Arc, thread};
 
 use parking_lot::RwLock;
 
-use crate::bindings::audio::{IMMNotificationClient, eRender};
 use crate::{
+    bindings::audio::{IMMNotificationClient, eRender},
     configuration::Configuration,
     wrappers::{Device, DeviceEnumerator, MMEvent, MMNotificationClient},
 };

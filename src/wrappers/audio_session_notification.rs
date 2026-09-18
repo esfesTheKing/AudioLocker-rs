@@ -1,7 +1,9 @@
-use crate::bindings::audio::{IAudioSessionControl, IAudioSessionNotification, IAudioSessionNotification_Impl};
-use crate::wrappers::{AudioSession, audio_session_events_handler::AudioSessionEvents};
-
 use windows_core::implement;
+
+use crate::{
+    bindings::audio::{IAudioSessionControl, IAudioSessionNotification, IAudioSessionNotification_Impl},
+    wrappers::{AudioSession, audio_session_events_handler::AudioSessionEvents},
+};
 
 #[implement(IAudioSessionNotification)]
 pub struct AudioSessionNotification {

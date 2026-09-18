@@ -4,15 +4,16 @@ use std::{
     thread,
 };
 
-use crate::bindings::audio::{IAudioSessionManager2, IAudioSessionNotification};
+use parking_lot::RwLock;
+
 use crate::{
+    bindings::audio::{IAudioSessionManager2, IAudioSessionNotification},
     configuration::Configuration,
     wrappers::{
         AudioSession, AudioSessionCollection, AudioSessionEventsHandler, AudioSessionNotification,
         audio_session_events_handler::AudioSessionEvents,
     },
 };
-use parking_lot::RwLock;
 
 #[derive(Debug)]
 pub struct AudioSessionManager {

@@ -1,10 +1,12 @@
-use crate::bindings::audio::{
-    DEVICE_STATE_ACTIVE, DEVICE_STATE_NOTPRESENT, DEVICE_STATE_UNPLUGGED, EDataFlow, ERole, IMMNotificationClient,
-    IMMNotificationClient_Impl, PROPERTYKEY,
-};
 use windows_core::implement;
 
-use crate::wrappers::MMEvent;
+use crate::{
+    bindings::audio::{
+        DEVICE_STATE_ACTIVE, DEVICE_STATE_NOTPRESENT, DEVICE_STATE_UNPLUGGED, EDataFlow, ERole, IMMNotificationClient,
+        IMMNotificationClient_Impl, PROPERTYKEY,
+    },
+    wrappers::MMEvent,
+};
 
 #[implement(IMMNotificationClient)]
 pub struct MMNotificationClient {

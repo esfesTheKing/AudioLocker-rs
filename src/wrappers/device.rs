@@ -1,13 +1,18 @@
 use std::sync::Arc;
 
-use crate::bindings::audio::{
-    EDataFlow, IMMDevice, IMMEndpoint, IPropertyStore, PKEY_Device_FriendlyName, PropVariantClear,
-    PropVariantToStringAlloc,
-};
-use crate::bindings::com::{CLSCTX_ALL, STGM_READ};
-use crate::wrappers::utils::RaiiPwstr;
-use crate::{configuration::Configuration, wrappers::AudioSessionManager};
 use windows_core::Interface;
+
+use crate::{
+    bindings::{
+        audio::{
+            EDataFlow, IMMDevice, IMMEndpoint, IPropertyStore, PKEY_Device_FriendlyName, PropVariantClear,
+            PropVariantToStringAlloc,
+        },
+        com::{CLSCTX_ALL, STGM_READ},
+    },
+    configuration::Configuration,
+    wrappers::{AudioSessionManager, utils::RaiiPwstr},
+};
 
 #[derive(Debug)]
 pub struct DeviceSlim {

@@ -1,7 +1,9 @@
 use windows_core::Interface;
 
-use crate::bindings::audio::{IAudioSessionControl, IAudioSessionControl2, IAudioSessionEvents, S_OK};
-use crate::wrappers::{AudioSessionEventsHandler, SimpleAudioVolume, utils::RaiiPwstr};
+use crate::{
+    bindings::audio::{IAudioSessionControl, IAudioSessionControl2, IAudioSessionEvents, S_OK},
+    wrappers::{AudioSessionEventsHandler, SimpleAudioVolume, utils::RaiiPwstr},
+};
 
 #[derive(Debug)]
 pub struct AudioSession {

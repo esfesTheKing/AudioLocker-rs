@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use crate::bindings::audio::IMMDeviceCollection;
-use crate::{configuration::Configuration, wrappers::Device};
+use crate::{bindings::audio::IMMDeviceCollection, configuration::Configuration, wrappers::Device};
 
 pub struct DeviceCollection {
     collection: IMMDeviceCollection,

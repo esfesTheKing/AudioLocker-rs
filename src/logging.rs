@@ -1,12 +1,13 @@
 use std::error::Error;
 
-use crate::constants::APPLICATION_NAME;
 use tracing_appender::{
     non_blocking::WorkerGuard,
     rolling::{RollingFileAppender, Rotation},
 };
 use tracing_log::LogTracer;
 use tracing_subscriber::{Registry, fmt, prelude::*};
+
+use crate::constants::APPLICATION_NAME;
 
 pub fn get_logging_directory() -> Result<String, Box<dyn Error>> {
     let appdata = std::env::var("APPDATA")?;

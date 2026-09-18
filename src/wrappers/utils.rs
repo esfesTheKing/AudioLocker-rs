@@ -1,5 +1,6 @@
-use crate::bindings::com::CoTaskMemFree;
 use windows_core::PWSTR;
+
+use crate::bindings::com::CoTaskMemFree;
 
 pub struct RaiiPwstr(pub PWSTR);
 
