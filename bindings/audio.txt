@@ -11,16 +11,20 @@ IMMNotificationClient
 IMMDevice
 IMMEndpoint
 ISimpleAudioVolume
+IPropertyStore
+PropVariantClear
+PropVariantToStringAlloc
+AudioSessionState
+AudioSessionDisconnectReason
 MMDeviceEnumerator
+PROPERTYKEY
+PKEY_Device_FriendlyName
 eRender
 EDataFlow
-DEVICE_STATE_ACTIVE
+ERole
 AudioSessionStateExpired
 DEVICE_STATE_ACTIVE
 DEVICE_STATE_NOTPRESENT
 DEVICE_STATE_UNPLUGGED
 
 --implement
-IAudioSessionEvents
-IAudioSessionNotification
-IMMNotificationClient
