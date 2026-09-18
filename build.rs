@@ -1,6 +1,8 @@
-use std::error::Error;
+use std::{error::Error, fs::File, io::Write};
 
 fn main() -> Result<(), Box<dyn Error>> {
+    println!("cargo:rerun-if-changed=build.rs");
+
     if std::env::var("CARGO_CFG_TARGET_OS")? == "windows" {
         let mut res = winresource::WindowsResource::new();
 
@@ -10,13 +12,19 @@ fn main() -> Result<(), Box<dyn Error>> {
             .set_manifest_file("assets/manifest.xml")
             .compile()?;
 
-        for bindgen_filename in ["audio", "com", "random"] {
+        let mut bindings_rs_file = File::create("src/bindings.rs")?;
+
+        for bindgen_filename in ["audio", "com", "shell"] {
             let src_bindgen_filename = format!("bindings/{bindgen_filename}.txt");
             let dst_bindgen_filename = format!("src/bindings/{bindgen_filename}.rs");
 
             println!("cargo:rerun-if-changed={src_bindgen_filename}");
             println!("cargo:rerun-if-changed={dst_bindgen_filename}");
             windows_bindgen::bindgen(["--out", &dst_bindgen_filename, "--flat", "--etc", &src_bindgen_filename]);
+
+            writeln!(bindings_rs_file, "#[allow(warnings)]")?;
+            writeln!(bindings_rs_file, "pub mod {bindgen_filename};")?;
+            writeln!(bindings_rs_file, "")?;
         }
     }
 
