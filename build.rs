@@ -24,7 +24,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             writeln!(bindings_rs_file, "#[allow(warnings)]")?;
             writeln!(bindings_rs_file, "pub mod {bindgen_filename};")?;
-            writeln!(bindings_rs_file, "")?;
+            writeln!(bindings_rs_file)?;
         }
     }
 
