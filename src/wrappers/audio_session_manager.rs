@@ -220,14 +220,19 @@ impl Drop for AudioSessionManager {
         }
 
         if let Some(thread_handle) = self.thread_handle.take() {
-            let result = thread_handle.join();
-            log::debug!("AudioSessionManager: Thread exited cleanly: {}", result.is_ok());
+            match thread_handle.join() {
+                Ok(_) => log::debug!("AudioSessionManager: Thread exited cleanly"),
+                Err(error) => log::error!(
+                    "AudioSessionManager: internal thread has paniced for `{}` with error {error:#?}",
+                    self.device_name
+                ),
+            }
         } else {
             log::error!(
                 "AudioSessionManager: thread_handle was not set for `{}`",
                 self.device_name
             );
-        };
+        }
 
         if let Err(error) = unsafe { self.unregister_notifications() } {
             log::error!(
