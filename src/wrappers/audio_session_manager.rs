@@ -200,15 +200,28 @@ impl AudioSessionManager {
 
 impl Drop for AudioSessionManager {
     fn drop(&mut self) {
-        // This will fail only if the receiver (in the thread) has been dropped, i.e. something paniced inside the thread :(
-        let _ = self.sender.send(AudioSessionEvents::Exit);
+        if let Err(_) = self.sender.send(AudioSessionEvents::Exit) {
+            log::debug!(
+                "AudioSessionManager: receiver has been dropped inside internal thread for `{}`",
+                self.device_name
+            );
+        }
 
-        // We can `unwrap` here as self.thread_handle is always set to Some(thread_handle) in Self::new function
-        let thread_handle = self.thread_handle.take().unwrap();
-        let result = thread_handle.join();
-        log::debug!("AudioSessionManager: Thread exited cleanly: {}", result.is_ok());
+        if let Some(thread_handle) = self.thread_handle.take() {
+            let result = thread_handle.join();
+            log::debug!("AudioSessionManager: Thread exited cleanly: {}", result.is_ok());
+        } else {
+            log::debug!(
+                "AudioSessionManager: thread_handle was not set for `{}`",
+                self.device_name
+            );
+        };
 
-        let result = unsafe { self.unregister_notifications() };
-        log::debug!("WHAT {:#?} {:#?}", result, thread::current().id());
+        if let Err(error) = unsafe { self.unregister_notifications() } {
+            log::error!(
+                "AudioSessionManager: an error occured while unregistering notification client for `{}` with error {error:#?}",
+                self.device_name
+            );
+        }
     }
 }
