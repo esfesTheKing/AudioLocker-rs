@@ -56,7 +56,16 @@ impl AudioSessionManager {
                         }
                         AudioSessionEvents::VolumeChanged(session_name, new_volume) => {
                             if let Some(session) = sessions.read().get(session_name.as_ref()) {
-                                let audio_config = config.get_session_config(&device_name, &session_name).unwrap();
+                                let audio_config = match config.get_session_config(&device_name, &session_name) {
+                                    Some(audio_config) => audio_config,
+                                    None => {
+                                        log::debug!(
+                                            "AudioSessionManager: unable to retrieve config for session `{session_name}` in device `{device_name}`"
+                                        );
+                                        continue;
+                                    }
+                                };
+
                                 if audio_config.is_manual {
                                     continue;
                                 }
