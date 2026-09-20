@@ -166,9 +166,10 @@ impl AudioSessionManager {
             true => String::from("System Sounds"),
             false => {
                 let display_name = session.display_name()?;
-                match display_name.is_empty() {
-                    true => config.get_process_name(session.process_id()?),
-                    false => display_name,
+                if display_name.is_empty() {
+                    config.get_process_name(session.process_id()?).unwrap_or(display_name)
+                } else {
+                    display_name
                 }
             }
         };
