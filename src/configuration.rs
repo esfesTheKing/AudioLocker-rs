@@ -84,14 +84,16 @@ impl Configuration {
     }
 
     pub fn get_process_name(&self, process_id: u32) -> Option<String> {
+        let pid = Pid::from_u32(process_id);
+
         let mut system_information = self.system_information.write();
         system_information.refresh_processes_specifics(
-            ProcessesToUpdate::All,
+            ProcessesToUpdate::Some(&[pid]),
             true,
             ProcessRefreshKind::nothing().with_exe(sysinfo::UpdateKind::OnlyIfNotSet),
         );
 
-        let process = system_information.process(Pid::from_u32(process_id))?;
+        let process = system_information.process(pid)?;
 
         process
             .exe()
