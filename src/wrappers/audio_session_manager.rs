@@ -56,21 +56,32 @@ impl AudioSessionManager {
                         }
                         AudioSessionEvents::VolumeChanged(session_name, new_volume) => {
                             if let Some(session) = sessions.read().get(session_name.as_ref()) {
-                                let audio_config = config.get_session_config(&device_name, &session_name).unwrap();
+                                let audio_config = match config.get_session_config(&device_name, &session_name) {
+                                    Some(audio_config) => audio_config,
+                                    None => {
+                                        log::debug!(
+                                            "AudioSessionManager: unable to retrieve config for session `{session_name}` in device `{device_name}`"
+                                        );
+                                        continue;
+                                    }
+                                };
+
                                 if audio_config.is_manual {
                                     continue;
                                 }
 
-                                if new_volume != audio_config.volume_level {
-                                    match session.set_volume(audio_config.volume_level) {
-                                        Ok(_) => log::info!(
-                                            "[{device_name}] [{session_name}] volume level was set from {new_volume} to {}",
-                                            audio_config.volume_level
-                                        ),
-                                        Err(error) => log::info!(
-                                            "[{device_name}] [{session_name}] failed to set volume level: {error:#?}"
-                                        ),
-                                    }
+                                if new_volume == audio_config.volume_level {
+                                    continue;
+                                }
+
+                                match session.set_volume(audio_config.volume_level) {
+                                    Ok(_) => log::info!(
+                                        "[{device_name}] [{session_name}] volume level was set from {new_volume} to {}",
+                                        audio_config.volume_level
+                                    ),
+                                    Err(error) => log::info!(
+                                        "[{device_name}] [{session_name}] failed to set volume level: {error:#?}"
+                                    ),
                                 }
                             }
                         }
@@ -119,10 +130,11 @@ impl AudioSessionManager {
 
     pub fn on_configuration_change(&self) {
         self.sessions.read().iter().for_each(|(session_name, session)| {
-            let volume_level = session.get_volume().unwrap();
-            let _ = self
-                .sender
-                .send(AudioSessionEvents::VolumeChanged(session_name.clone(), volume_level));
+            if let Ok(volume_level) = session.get_volume() {
+                let _ = self
+                    .sender
+                    .send(AudioSessionEvents::VolumeChanged(session_name.clone(), volume_level));
+            }
         });
     }
 
@@ -166,9 +178,10 @@ impl AudioSessionManager {
             true => String::from("System Sounds"),
             false => {
                 let display_name = session.display_name()?;
-                match display_name.is_empty() {
-                    true => config.get_process_name(session.process_id()?),
-                    false => display_name,
+                if display_name.is_empty() {
+                    config.get_process_name(session.process_id()?).unwrap_or(display_name)
+                } else {
+                    display_name
                 }
             }
         };
@@ -199,15 +212,33 @@ impl AudioSessionManager {
 
 impl Drop for AudioSessionManager {
     fn drop(&mut self) {
-        // This will fail only if the receiver (in the thread) has been dropped, i.e. something paniced inside the thread :(
-        let _ = self.sender.send(AudioSessionEvents::Exit);
+        if let Err(_) = self.sender.send(AudioSessionEvents::Exit) {
+            log::error!(
+                "AudioSessionManager: receiver has been dropped inside internal thread for `{}`",
+                self.device_name
+            );
+        }
 
-        // We can `unwrap` here as self.thread_handle is always set to Some(thread_handle) in Self::new function
-        let thread_handle = self.thread_handle.take().unwrap();
-        let result = thread_handle.join();
-        log::debug!("AudioSessionManager: Thread exited cleanly: {}", result.is_ok());
+        if let Some(thread_handle) = self.thread_handle.take() {
+            match thread_handle.join() {
+                Ok(_) => log::debug!("AudioSessionManager: Thread exited cleanly"),
+                Err(error) => log::error!(
+                    "AudioSessionManager: internal thread has paniced for `{}` with error {error:#?}",
+                    self.device_name
+                ),
+            }
+        } else {
+            log::error!(
+                "AudioSessionManager: thread_handle was not set for `{}`",
+                self.device_name
+            );
+        }
 
-        let result = unsafe { self.unregister_notifications() };
-        log::debug!("WHAT {:#?} {:#?}", result, thread::current().id());
+        if let Err(error) = unsafe { self.unregister_notifications() } {
+            log::error!(
+                "AudioSessionManager: an error occured while unregistering notification client for `{}` with error {error:#?}",
+                self.device_name
+            );
+        }
     }
 }

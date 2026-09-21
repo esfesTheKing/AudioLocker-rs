@@ -1,7 +1,12 @@
-use std::{collections::HashMap, sync::Arc, thread};
+use std::{
+    collections::HashMap,
+    sync::{Arc, atomic::AtomicBool},
+    thread,
+};
 
 use parking_lot::RwLock;
 use windows::Win32::Media::Audio::{IMMNotificationClient, eRender};
+use windows_core::AsImpl;
 
 use crate::{
     configuration::Configuration,
@@ -25,7 +30,10 @@ impl DeviceManager {
         let enumerator = unsafe { DeviceEnumerator::new(config.clone())? };
 
         let (sender, receiver) = crossbeam_channel::unbounded::<MMEvent>();
-        let notification_client = Some(IMMNotificationClient::from(MMNotificationClient::new(sender.clone())));
+        let notification_client = Some(IMMNotificationClient::from(MMNotificationClient::new(
+            sender.clone(),
+            AtomicBool::new(true),
+        )));
 
         let thread_handle = {
             let config = config.clone();
@@ -51,11 +59,23 @@ impl DeviceManager {
                                 }
                             };
 
-                            if unsafe { device.data_flow().unwrap() } != eRender {
+                            let data_flow = match unsafe { device.data_flow() } {
+                                Ok(data_flow) => data_flow,
+                                Err(error) => {
+                                    log::error!("Got error while retrieving data_flow for `{device_id}`: {error}");
+                                    continue;
+                                }
+                            };
+                            if data_flow != eRender {
                                 continue;
                             }
 
-                            let device_name = unsafe { device.name().unwrap() };
+                            let device_name = unsafe { device.name().unwrap_or_else(|_| String::new()) };
+                            if device_name.is_empty() {
+                                log::error!("Device `{device_id}` has empty name, stopping initializiation");
+                                continue;
+                            }
+
                             log::info!("[{device_name}] Initializing device");
 
                             if let Err(error) = unsafe { device.initialize_sessions() } {
@@ -148,23 +168,40 @@ impl DeviceManager {
 
 impl Drop for DeviceManager {
     fn drop(&mut self) {
-        // This will fail only if the receiver (in the thread) has been dropped, i.e. something paniced inside the thread :(
-        let _ = self.sender.send(MMEvent::Exit);
+        // Stop handling notifications during shutdown
+        if let Some(client) = self.notification_client.as_ref() {
+            unsafe { client.as_impl() }.disable();
+        }
 
-        let thread_handle = self.thread_handle.take();
-        // SAFETY: thread_handle is set always set in new()
-        if let Err(error) = thread_handle.unwrap().join() {
-            log::debug!("The thread paniced internaly for some reason, additional info: {error:#?}");
+        if self.sender.send(MMEvent::Exit).is_err() {
+            log::error!("Receiver has been dropped inside internal thread");
+        }
+
+        if let Some(thread_handle) = self.thread_handle.take() {
+            match thread_handle.join() {
+                Ok(_) => log::debug!("Thread exited cleanly"),
+                Err(error) => log::error!("Internal thread has panicked with error {error:#?}"),
+            }
+        } else {
+            log::error!("thread_handle was not set");
         }
 
         // SAFETY:
-        //  both possible errors from this method call are unlikely to happen:
-        //      1. E_POINTER - this will only happen if self.notification_client is set to None, it's value is set in the new() function to Some.
-        //      2. E_NOTFOUND - this will only happen when trying to unregister a notification_client that was not registered with this IMMDeviceEnumerator.
+        //  - `self.notification_client` is the same interface pointer registered on this exact
+        //    `self.enumerator` in `new()`, so E_POINTER / E_NOTFOUND cannot occur.
+        //  - Register/UnregisterEndpointNotificationCallback do NOT AddRef/Release the client,
+        //    `self.notification_client` must outlive the `self.enumerator.unregister_client` call.
+        //    Owning it via `take()` guarantees that.
         //
         //  links to docs: https://learn.microsoft.com/en-us/windows/win32/api/mmdeviceapi/nf-mmdeviceapi-immdeviceenumerator-unregisterendpointnotificationcallback
-        if let Err(error) = unsafe { self.enumerator.unregister_client(self.notification_client.as_ref()) } {
-            log::error!("Error occured when unregistering client due to {error:#?}");
+        if let Some(client) = self.notification_client.take() {
+            if let Err(error) = unsafe { self.enumerator.unregister_client(Some(&client)) } {
+                log::error!("Error occurred when unregistering client due to {error:#?}");
+
+                // The enumerator may still hold a raw pointer to the client; leak it rather than
+                // free an object the OS could still call into.
+                std::mem::forget(client);
+            }
         }
     }
 }

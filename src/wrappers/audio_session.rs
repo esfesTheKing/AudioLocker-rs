@@ -87,9 +87,10 @@ impl AudioSession {
 
     fn unregister_event_handler(&mut self) {
         if self.events_handler.is_none() {
+            // TODO: instead of only using Self::display_name(), refactor to have the same logic for getting the session name as in AudioSessionManager::initailize_session
             log::debug!(
                 "It's a little bit sus that we didn't register an events handler for `{}`",
-                self.display_name().unwrap()
+                self.display_name().unwrap_or_else(|_| "unknown".to_string())
             );
             return;
         }
