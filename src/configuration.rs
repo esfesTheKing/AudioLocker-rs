@@ -83,27 +83,26 @@ impl Configuration {
         })
     }
 
-    pub fn get_process_name(&self, process_id: u32) -> String {
+    pub fn get_process_name(&self, process_id: u32) -> Option<String> {
+        let pid = Pid::from_u32(process_id);
+
         let mut system_information = self.system_information.write();
         system_information.refresh_processes_specifics(
-            ProcessesToUpdate::All,
+            ProcessesToUpdate::Some(&[pid]),
             true,
             ProcessRefreshKind::nothing().with_exe(sysinfo::UpdateKind::OnlyIfNotSet),
         );
 
-        let process = system_information.process(Pid::from_u32(process_id)).unwrap();
+        let process = system_information.process(pid)?;
 
         process
             .exe()
             .and_then(Path::to_str)
             .and_then(get_process_name_from_file_information)
-            .unwrap_or_else(|| {
-                let string = process.name().to_str().unwrap();
+            .or_else(|| {
+                let string = process.name().to_str()?;
 
-                string
-                    .strip_suffix(".exe")
-                    .map(str::to_owned)
-                    .unwrap_or(string.to_string())
+                Some(string.strip_suffix(".exe").unwrap_or(string).to_owned())
             })
     }
 
