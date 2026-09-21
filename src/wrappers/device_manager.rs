@@ -59,11 +59,23 @@ impl DeviceManager {
                                 }
                             };
 
-                            if unsafe { device.data_flow().unwrap() } != eRender {
+                            let data_flow = match unsafe { device.data_flow() } {
+                                Ok(data_flow) => data_flow,
+                                Err(error) => {
+                                    log::error!("Got error while retrieving data_flow for `{device_id}`: {error}");
+                                    continue;
+                                }
+                            };
+                            if data_flow != eRender {
                                 continue;
                             }
 
-                            let device_name = unsafe { device.name().unwrap() };
+                            let device_name = unsafe { device.name().unwrap_or_else(|_| String::new()) };
+                            if device_name.is_empty() {
+                                log::error!("Device `{device_id}` has empty name, stopping initializiation");
+                                continue;
+                            }
+
                             log::info!("[{device_name}] Initializing device");
 
                             if let Err(error) = unsafe { device.initialize_sessions() } {
