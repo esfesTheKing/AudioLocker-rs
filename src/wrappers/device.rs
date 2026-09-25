@@ -3,10 +3,7 @@ use std::sync::Arc;
 use windows::Win32::{
     Devices::FunctionDiscovery::PKEY_Device_FriendlyName,
     Media::Audio::{EDataFlow, IMMDevice, IMMEndpoint},
-    System::Com::{
-        CLSCTX_ALL, STGM_READ,
-        StructuredStorage::{PropVariantClear},
-    },
+    System::Com::{CLSCTX_ALL, STGM_READ},
     UI::Shell::PropertiesSystem::IPropertyStore,
 };
 use windows_core::Interface;
@@ -38,14 +35,9 @@ impl DeviceSlim {
     }
 
     pub unsafe fn name(&self) -> windows_core::Result<String> {
-        let mut prop_variant = unsafe { self.property_store.GetValue(&PKEY_Device_FriendlyName) }?;
-        let return_value = prop_variant.to_string();
+        let prop_variant = unsafe { self.property_store.GetValue(&PKEY_Device_FriendlyName)? };
 
-        unsafe {
-            PropVariantClear(&mut prop_variant)?;
-        }
-
-        Ok(return_value)
+        Ok(prop_variant.to_string())
     }
 }
 
