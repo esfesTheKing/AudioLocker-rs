@@ -5,7 +5,7 @@ use windows::Win32::{
     Media::Audio::{EDataFlow, IMMDevice, IMMEndpoint},
     System::Com::{
         CLSCTX_ALL, STGM_READ,
-        StructuredStorage::{PROPVARIANT, PropVariantClear},
+        StructuredStorage::{PropVariantClear},
     },
     UI::Shell::PropertiesSystem::IPropertyStore,
 };
@@ -42,7 +42,7 @@ impl DeviceSlim {
         let return_value = prop_variant.to_string();
 
         unsafe {
-            PropVariantClear(&mut prop_variant as *mut PROPVARIANT)?;
+            PropVariantClear(&mut prop_variant)?;
         }
 
         Ok(return_value)
