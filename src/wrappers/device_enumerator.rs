@@ -5,29 +5,33 @@ use windows::Win32::{
         DEVICE_STATE_ACTIVE, IMMDeviceEnumerator, IMMNotificationClient, MMDeviceEnumerator as MMDeviceEnumeratorGuid,
         eRender,
     },
-    System::Com::{CLSCTX_ALL, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx, CoUninitialize},
+    System::Com::{CLSCTX_ALL, CoCreateInstance},
 };
 use windows_core::PCWSTR;
 
 use crate::{
     configuration::Configuration,
     constants::UTF16_NULL_TERMINATOR_LITTERAL,
-    wrappers::{Device, DeviceCollection, DeviceSlim},
+    wrappers::{ComInitializationGuard, Device, DeviceCollection, DeviceSlim},
 };
 
 pub struct DeviceEnumerator {
     config: Arc<Configuration>,
     enumerator: IMMDeviceEnumerator,
+    _com_guard: ComInitializationGuard,
 }
 
 impl DeviceEnumerator {
     pub unsafe fn new(config: Arc<Configuration>) -> windows_core::Result<Self> {
         unsafe {
-            CoInitializeEx(None, COINIT_MULTITHREADED).ok()?;
-
+            let com_guard = ComInitializationGuard::new()?;
             let enumerator: IMMDeviceEnumerator = CoCreateInstance(&MMDeviceEnumeratorGuid, None, CLSCTX_ALL)?;
 
-            Ok(Self { config, enumerator })
+            Ok(Self {
+                config,
+                enumerator,
+                _com_guard: com_guard,
+            })
         }
     }
 
@@ -75,13 +79,5 @@ impl DeviceEnumerator {
         }
 
         Ok(())
-    }
-}
-
-impl Drop for DeviceEnumerator {
-    fn drop(&mut self) {
-        unsafe {
-            CoUninitialize();
-        }
     }
 }
