@@ -1,9 +1,10 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, hash_map::Entry},
     fs::OpenOptions,
     io::{self, BufReader, BufWriter},
     os::windows::fs::OpenOptionsExt,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use parking_lot::RwLock;
@@ -32,6 +33,7 @@ struct DeviceConfiguration(HashMap<String, AudioSessionConfiguration>);
 struct AudioConfiguration {
     default_volume_level: u8,
     config: HashMap<String, DeviceConfiguration>,
+    device_id_to_device_name: HashMap<Arc<str>, Arc<str>>,
 }
 
 impl Drop for AudioConfiguration {
@@ -117,6 +119,7 @@ impl Configuration {
         let config = AudioConfiguration {
             default_volume_level: DEFAULT_VOLUME_LEVEL,
             config: HashMap::new(),
+            device_id_to_device_name: HashMap::new(),
         };
 
         let file = OpenOptions::new()
@@ -136,18 +139,50 @@ impl Configuration {
         &self.config_path
     }
 
-    pub fn get_session_config(&self, device_id: &str, session_id: &str) -> Option<AudioSessionConfiguration> {
-        self.data.read().config.get(device_id)?.0.get(session_id).cloned()
+    pub fn get_device_name(&self, device_id: &str) -> Option<Arc<str>> {
+        self.data.read().device_id_to_device_name.get(device_id).cloned()
     }
 
-    pub fn register_session(&self, device_id: String, session_id: String) -> io::Result<()> {
-        let default_volume_level = self.data.read().default_volume_level;
+    pub fn get_session_config(&self, device_id: &str, session_id: &str) -> Option<AudioSessionConfiguration> {
+        let device_name = &self.get_device_name(device_id)? as &str;
 
-        self.data
-            .write()
-            .config
-            .entry(device_id)
-            .or_default()
+        self.data.read().config.get(device_name)?.0.get(session_id).cloned()
+    }
+
+    pub fn register_device(&self, device_id: Arc<str>, device_name: String) {
+        let mut data = self.data.write();
+
+        let device_name: Arc<str> = Arc::from(device_name);
+
+        match data.device_id_to_device_name.entry(device_id) {
+            Entry::Occupied(mut entry) => {
+                // Migrate device config from old name to new name.
+                // If a device config with the new name already exists, override it with the old name's config.
+
+                let old_device_name = entry.insert(device_name.clone());
+                if let Some(device_config) = data.config.remove(&old_device_name as &str) {
+                    data.config.insert(device_name.to_string(), device_config);
+                }
+            }
+            Entry::Vacant(entry) => {
+                // Add entry to mapping, if device config exists use it.
+
+                entry.insert_entry(device_name.clone());
+
+                let device_config = data.config.remove(&device_name as &str).unwrap_or_default();
+                data.config.insert(device_name.to_string(), device_config);
+            }
+        }
+    }
+
+    pub fn register_session(&self, device_id: &str, session_id: String) -> Option<()> {
+        let default_volume_level = self.data.read().default_volume_level;
+        let device_name = &self.get_device_name(device_id)? as &str;
+
+        let mut data = self.data.write();
+
+        data.config
+            .get_mut(device_name)?
             .0
             .entry(session_id)
             .or_insert_with(|| AudioSessionConfiguration {
@@ -155,7 +190,7 @@ impl Configuration {
                 is_manual: false,
             });
 
-        Ok(())
+        Some(())
     }
 
     pub fn read_from_disk(&self) -> io::Result<()> {

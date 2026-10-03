@@ -90,29 +90,14 @@ impl DeviceManager {
 
                             log::info!("[{device_name}] Finished initializing device");
 
-                            devices.write().insert(device_name, device);
+                            devices.write().insert(device_id, device);
                         }
                         MMEvent::DeviceRemoved(device_id) => {
-                            // It is cheap the get the a "new" MMDevice as we didn't call initialize_sessions() to make it expensive
-                            let device = match unsafe { enumerator.get_device_slim_by_id(&device_id) } {
-                                Ok(v) => v,
-                                Err(error) => {
-                                    log::error!("Unable to get device from `{device_id}` due to {error:#?}");
-                                    continue;
-                                }
-                            };
+                            let _ = devices.write().remove(&device_id);
 
-                            let device_name = match unsafe { device.name() } {
-                                Ok(device_name) => device_name,
-                                Err(error) => {
-                                    log::error!("Unable to get {device_id}'s name due to {error:#?}");
-                                    continue;
-                                }
-                            };
-
-                            let _ = devices.write().remove(&device_name);
-
-                            log::info!("[{device_name}] Removed device");
+                            if let Some(device_name) = config.get_device_name(&device_id) {
+                                log::info!("[{device_name}] Removed device");
+                            }
                         }
                         MMEvent::Exit => return,
                     }
@@ -137,13 +122,14 @@ impl DeviceManager {
             let mut devices = self.devices.write();
 
             for device in self.enumerator.devices()?.iter() {
-                let device_name = device.name()?;
+                let device_id = device.id()?;
+                let device_name = self.config.get_device_name(&device_id).unwrap(); // TODO: unwrap
 
                 log::info!("[{device_name}] Initializing device");
                 device.initialize_sessions()?;
                 log::info!("[{device_name}] Finished initializing device");
 
-                devices.insert(device_name, device);
+                devices.insert(device_id, device);
             }
 
             self.config.write_to_disk()?;
