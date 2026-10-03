@@ -32,7 +32,7 @@ struct DeviceConfiguration(HashMap<String, AudioSessionConfiguration>);
 #[derive(Serialize, Deserialize, Debug)]
 struct AudioConfiguration {
     default_volume_level: u8,
-    config: HashMap<String, DeviceConfiguration>,
+    config: HashMap<Arc<str>, DeviceConfiguration>,
     device_id_to_device_name: HashMap<Arc<str>, Arc<str>>,
 }
 
@@ -149,10 +149,8 @@ impl Configuration {
         self.data.read().config.get(device_name)?.0.get(session_id).cloned()
     }
 
-    pub fn register_device(&self, device_id: Arc<str>, device_name: String) {
+    pub fn register_device(&self, device_id: Arc<str>, device_name: Arc<str>) {
         let mut data = self.data.write();
-
-        let device_name: Arc<str> = Arc::from(device_name);
 
         match data.device_id_to_device_name.entry(device_id) {
             Entry::Occupied(mut entry) => {
@@ -161,7 +159,7 @@ impl Configuration {
 
                 let old_device_name = entry.insert(device_name.clone());
                 if let Some(device_config) = data.config.remove(&old_device_name as &str) {
-                    data.config.insert(device_name.to_string(), device_config);
+                    data.config.insert(device_name, device_config);
                 }
             }
             Entry::Vacant(entry) => {
@@ -170,7 +168,7 @@ impl Configuration {
                 entry.insert_entry(device_name.clone());
 
                 let device_config = data.config.remove(&device_name as &str).unwrap_or_default();
-                data.config.insert(device_name.to_string(), device_config);
+                data.config.insert(device_name, device_config);
             }
         }
     }
