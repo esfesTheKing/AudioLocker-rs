@@ -14,9 +14,12 @@ use crate::{
 };
 
 #[derive(Debug)]
-pub struct DeviceSlim {
-    property_store: IPropertyStore,
+struct DeviceSlim {
     device: IMMDevice,
+
+    // Cache
+    id: Arc<str>,
+    name: Arc<str>,
 }
 
 #[derive(Debug)]
@@ -33,19 +36,26 @@ impl DeviceSlim {
         unsafe {
             let property_store = device.OpenPropertyStore(STGM_READ)?;
 
-            Ok(Self { property_store, device })
+            let id = Self::id(&device)?;
+            let name = Self::name(&property_store)?;
+
+            Ok(Self {
+                device,
+                id: Arc::<str>::from(id),
+                name: Arc::<str>::from(name),
+            })
         }
     }
 
-    pub unsafe fn name(&self) -> windows_core::Result<String> {
-        let prop_variant = unsafe { self.property_store.GetValue(&PKEY_Device_FriendlyName)? };
+    fn name(property_store: &IPropertyStore) -> windows_core::Result<String> {
+        let prop_variant = unsafe { property_store.GetValue(&PKEY_Device_FriendlyName)? };
 
         Ok(prop_variant.to_string())
     }
 
-    pub fn id(&self) -> windows_core::Result<String> {
+    fn id(device: &IMMDevice) -> windows_core::Result<String> {
         unsafe {
-            let result = RaiiPwstr(self.device.GetId()?);
+            let result = RaiiPwstr(device.GetId()?);
 
             result.to_string()
         }
@@ -57,12 +67,10 @@ impl Device {
         unsafe {
             let slim = DeviceSlim::new(device)?;
 
-            let device_id: Arc<str> = Arc::from(slim.id()?);
-            let device_name = slim.name()?;
-            config.register_device(device_id.clone(), device_name);
+            config.register_device(slim.id.clone(), slim.name.clone());
 
             let interface = slim.device.Activate(CLSCTX_ALL, None)?;
-            let session_manager = AudioSessionManager::new(device_id, interface, config)?;
+            let session_manager = AudioSessionManager::new(slim.id.clone(), interface, config)?;
 
             Ok(Self { slim, session_manager })
         }
@@ -79,13 +87,12 @@ impl Device {
     pub unsafe fn data_flow(&self) -> windows_core::Result<EDataFlow> {
         unsafe { self.slim.device.cast::<IMMEndpoint>()?.GetDataFlow() }
     }
-}
 
-// Allows calling DeviceSlim`s methods from Device automatically
-impl std::ops::Deref for Device {
-    type Target = DeviceSlim;
+    pub fn id(&self) -> Arc<str> {
+        self.slim.id.clone()
+    }
 
-    fn deref(&self) -> &Self::Target {
-        &self.slim
+    pub fn name(&self) -> Arc<str> {
+        self.slim.name.clone()
     }
 }
