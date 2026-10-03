@@ -25,12 +25,12 @@ pub struct AudioSessionManager {
     sessions: Arc<RwLock<HashMap<Arc<str>, AudioSession>>>,
     notification: Option<IAudioSessionNotification>,
     manager: IAudioSessionManager2,
-    device_name: String,
+    device_id: Arc<str>,
 }
 
 impl AudioSessionManager {
     pub unsafe fn new(
-        device_name: String,
+        device_id: Arc<str>,
         manager: IAudioSessionManager2,
         config: Arc<Configuration>,
     ) -> windows_core::Result<Self> {
@@ -39,7 +39,8 @@ impl AudioSessionManager {
         let (sender, receiver) = crossbeam_channel::unbounded::<AudioSessionEvents>();
 
         let thread_handle = {
-            let device_name = device_name.clone();
+            let device_name = config.get_device_name(&device_id).unwrap(); // TODO: fix unwrap
+            let device_id = device_id.clone();
             let config = config.clone();
             let sender = sender.clone();
             let sessions = sessions.clone();
@@ -48,15 +49,20 @@ impl AudioSessionManager {
                 while let Ok(event) = receiver.recv() {
                     match event {
                         AudioSessionEvents::NewSession(session) => {
-                            if let Err(error) =
-                                Self::initailize_session(&device_name, &config, &sender, &sessions, session)
-                            {
+                            if let Err(error) = Self::initailize_session(
+                                &device_id,
+                                &device_name as &str,
+                                &config,
+                                &sender,
+                                &sessions,
+                                session,
+                            ) {
                                 log::warn!("[{device_name}] Failed to initialize session due to {error:#?}");
                             }
                         }
                         AudioSessionEvents::VolumeChanged(session_name, new_volume) => {
                             if let Some(session) = sessions.read().get(session_name.as_ref()) {
-                                let audio_config = match config.get_session_config(&device_name, &session_name) {
+                                let audio_config = match config.get_session_config(&device_id, &session_name) {
                                     Some(audio_config) => audio_config,
                                     None => {
                                         log::debug!(
@@ -104,7 +110,7 @@ impl AudioSessionManager {
             sessions,
             manager,
             notification: None,
-            device_name,
+            device_id,
         };
 
         let notification = AudioSessionNotification::new(manager.sender.clone());
@@ -118,8 +124,17 @@ impl AudioSessionManager {
 
     pub unsafe fn initialize_sessions(&self) -> windows_core::Result<()> {
         unsafe {
+            let device_name = &self.config.get_device_name(&self.device_id).unwrap() as &str;
+
             self.get_sessions()?.iter().try_for_each(|session| {
-                Self::initailize_session(&self.device_name, &self.config, &self.sender, &self.sessions, session)
+                Self::initailize_session(
+                    &self.device_id,
+                    device_name,
+                    &self.config,
+                    &self.sender,
+                    &self.sessions,
+                    session,
+                )
             })
         }
     }
@@ -151,23 +166,22 @@ impl AudioSessionManager {
     }
 
     unsafe fn unregister_notifications(&mut self) -> windows_core::Result<()> {
+        let device_name = self.config.get_device_name(&self.device_id).unwrap(); // TODO: unwrap
         let notification = self.notification.take();
         if notification.is_none() {
-            log::debug!(
-                "[{}] doesn't have a session notification handler, nothing to do...",
-                self.device_name
-            );
+            log::debug!("[{device_name}] doesn't have a session notification handler, nothing to do...");
 
             return Ok(());
         }
 
         unsafe { self.manager.UnregisterSessionNotification(notification.as_ref())? }
 
-        log::debug!("[{}] Unregistering session notification handler", self.device_name);
+        log::debug!("[{device_name}] Unregistering session notification handler");
         Ok(())
     }
 
     fn initailize_session(
+        device_id: &str,
         device_name: &str,
         config: &Arc<Configuration>,
         sender: &crossbeam_channel::Sender<AudioSessionEvents>,
@@ -190,7 +204,10 @@ impl AudioSessionManager {
 
         if let Entry::Vacant(entry) = sessions.write().entry(session_name.clone()) {
             log::info!("[{device_name}] [{session_name}] Initializing session");
-            config.register_session(device_name.to_owned(), session_name.to_string())?;
+
+            config
+                .register_session(device_id, session_name.to_string())
+                .ok_or_else(|| windows_core::Error::new(windows_core::HRESULT(-1), "Device not registered"))?;
 
             let events_handler = AudioSessionEventsHandler::new(session_name.clone(), sender.clone());
             session.register_event_handler(events_handler)?;
@@ -212,32 +229,26 @@ impl AudioSessionManager {
 
 impl Drop for AudioSessionManager {
     fn drop(&mut self) {
+        let device_name = self.config.get_device_name(&self.device_id).unwrap(); // TODO: unwrap
+
         if let Err(_) = self.sender.send(AudioSessionEvents::Exit) {
-            log::error!(
-                "AudioSessionManager: receiver has been dropped inside internal thread for `{}`",
-                self.device_name
-            );
+            log::error!("AudioSessionManager: receiver has been dropped inside internal thread for `{device_name}`");
         }
 
         if let Some(thread_handle) = self.thread_handle.take() {
             match thread_handle.join() {
                 Ok(_) => log::debug!("AudioSessionManager: Thread exited cleanly"),
                 Err(error) => log::error!(
-                    "AudioSessionManager: internal thread has paniced for `{}` with error {error:#?}",
-                    self.device_name
+                    "AudioSessionManager: internal thread has paniced for `{device_name}` with error {error:#?}"
                 ),
             }
         } else {
-            log::error!(
-                "AudioSessionManager: thread_handle was not set for `{}`",
-                self.device_name
-            );
+            log::error!("AudioSessionManager: thread_handle was not set for `{device_name}`");
         }
 
         if let Err(error) = unsafe { self.unregister_notifications() } {
             log::error!(
-                "AudioSessionManager: an error occured while unregistering notification client for `{}` with error {error:#?}",
-                self.device_name
+                "AudioSessionManager: an error occured while unregistering notification client for `{device_name}` with error {error:#?}"
             );
         }
     }

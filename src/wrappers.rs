@@ -19,7 +19,7 @@ pub(crate) use audio_session_events_handler::AudioSessionEventsHandler;
 pub(crate) use audio_session_manager::AudioSessionManager;
 pub(crate) use audio_session_notification::AudioSessionNotification;
 pub(crate) use com_guard::ComInitializationGuard;
-pub(crate) use device::{Device, DeviceSlim};
+pub(crate) use device::{Device};
 pub(crate) use device_collection::DeviceCollection;
 pub(crate) use device_enumerator::DeviceEnumerator;
 pub(crate) use device_manager::DeviceManager;

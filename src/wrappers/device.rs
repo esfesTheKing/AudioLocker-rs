@@ -8,7 +8,10 @@ use windows::Win32::{
 };
 use windows_core::Interface;
 
-use crate::{configuration::Configuration, wrappers::AudioSessionManager};
+use crate::{
+    configuration::Configuration,
+    wrappers::{AudioSessionManager, utils::RaiiPwstr},
+};
 
 #[derive(Debug)]
 pub struct DeviceSlim {
@@ -39,6 +42,14 @@ impl DeviceSlim {
 
         Ok(prop_variant.to_string())
     }
+
+    pub fn id(&self) -> windows_core::Result<String> {
+        unsafe {
+            let result = RaiiPwstr(self.device.GetId()?);
+
+            result.to_string()
+        }
+    }
 }
 
 impl Device {
@@ -46,8 +57,12 @@ impl Device {
         unsafe {
             let slim = DeviceSlim::new(device)?;
 
+            let device_id: Arc<str> = Arc::from(slim.id()?);
+            let device_name = slim.name()?;
+            config.register_device(device_id.clone(), device_name);
+
             let interface = slim.device.Activate(CLSCTX_ALL, None)?;
-            let session_manager = AudioSessionManager::new(slim.name()?, interface, config)?;
+            let session_manager = AudioSessionManager::new(device_id, interface, config)?;
 
             Ok(Self { slim, session_manager })
         }
@@ -61,11 +76,16 @@ impl Device {
         unsafe { self.session_manager.initialize_sessions() }
     }
 
-    pub unsafe fn name(&self) -> windows_core::Result<String> {
-        unsafe { self.slim.name() }
-    }
-
     pub unsafe fn data_flow(&self) -> windows_core::Result<EDataFlow> {
         unsafe { self.slim.device.cast::<IMMEndpoint>()?.GetDataFlow() }
+    }
+}
+
+// Allows calling DeviceSlim`s methods from Device automatically
+impl std::ops::Deref for Device {
+    type Target = DeviceSlim;
+
+    fn deref(&self) -> &Self::Target {
+        &self.slim
     }
 }
