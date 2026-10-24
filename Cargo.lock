@@ -2401,31 +2401,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "windows-core-audio"
-version = "0.1.0"
-dependencies = [
- "crossbeam-channel",
- "log",
- "named-lock",
- "notify",
- "open",
- "parking_lot",
- "rfd",
- "serde",
- "serde_json",
- "sysinfo",
- "tao",
- "tracing",
- "tracing-appender",
- "tracing-log",
- "tracing-subscriber",
- "tray-icon",
- "windows 0.62.2",
- "windows-core 0.62.2",
- "windows-registry",
-]
-
-[[package]]
 name = "windows-future"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2640,6 +2615,31 @@ name = "windows_aarch64_msvc"
 version = "0.53.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9d782e804c2f632e395708e99a94275910eb9100b2114651e04744e9b125006"
+
+[[package]]
+name = "windows_core_audio"
+version = "0.1.0"
+dependencies = [
+ "crossbeam-channel",
+ "log",
+ "named-lock",
+ "notify",
+ "open",
+ "parking_lot",
+ "rfd",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tao",
+ "tracing",
+ "tracing-appender",
+ "tracing-log",
+ "tracing-subscriber",
+ "tray-icon",
+ "windows 0.62.2",
+ "windows-core 0.62.2",
+ "windows-registry",
+]
 
 [[package]]
 name = "windows_i686_gnu"
