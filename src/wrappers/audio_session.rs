@@ -46,9 +46,7 @@ impl AudioSession {
         unsafe {
             let pwstr = RaiiPwstr(self.session.GetDisplayName()?);
 
-            let return_value = pwstr.to_string()?;
-
-            Ok(return_value)
+            pwstr.to_string()
         }
     }
 
@@ -56,9 +54,7 @@ impl AudioSession {
         unsafe {
             let pwstr = RaiiPwstr(self.session.GetSessionIdentifier()?);
 
-            let return_value = pwstr.to_string()?;
-
-            Ok(return_value)
+            pwstr.to_string()
         }
     }
 

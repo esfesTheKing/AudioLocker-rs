@@ -3,20 +3,23 @@ use std::sync::Arc;
 use windows::Win32::{
     Devices::FunctionDiscovery::PKEY_Device_FriendlyName,
     Media::Audio::{EDataFlow, IMMDevice, IMMEndpoint},
-    System::Com::{
-        CLSCTX_ALL, STGM_READ,
-        StructuredStorage::{PROPVARIANT, PropVariantClear},
-    },
+    System::Com::{CLSCTX_ALL, STGM_READ},
     UI::Shell::PropertiesSystem::IPropertyStore,
 };
 use windows_core::Interface;
 
-use crate::{configuration::Configuration, wrappers::AudioSessionManager};
+use crate::{
+    configuration::Configuration,
+    wrappers::{AudioSessionManager, utils::RaiiPwstr},
+};
 
 #[derive(Debug)]
-pub struct DeviceSlim {
-    property_store: IPropertyStore,
+struct DeviceSlim {
     device: IMMDevice,
+
+    // Cache
+    id: Arc<str>,
+    name: Arc<str>,
 }
 
 #[derive(Debug)]
@@ -33,19 +36,29 @@ impl DeviceSlim {
         unsafe {
             let property_store = device.OpenPropertyStore(STGM_READ)?;
 
-            Ok(Self { property_store, device })
+            let id = Self::id(&device)?;
+            let name = Self::name(&property_store)?;
+
+            Ok(Self {
+                device,
+                id: Arc::<str>::from(id),
+                name: Arc::<str>::from(name),
+            })
         }
     }
 
-    pub unsafe fn name(&self) -> windows_core::Result<String> {
-        let mut prop_variant = unsafe { self.property_store.GetValue(&PKEY_Device_FriendlyName) }?;
-        let return_value = prop_variant.to_string();
+    fn name(property_store: &IPropertyStore) -> windows_core::Result<String> {
+        let prop_variant = unsafe { property_store.GetValue(&PKEY_Device_FriendlyName)? };
 
+        Ok(prop_variant.to_string())
+    }
+
+    fn id(device: &IMMDevice) -> windows_core::Result<String> {
         unsafe {
-            PropVariantClear(&mut prop_variant as *mut PROPVARIANT)?;
-        }
+            let result = RaiiPwstr(device.GetId()?);
 
-        Ok(return_value)
+            result.to_string()
+        }
     }
 }
 
@@ -54,8 +67,10 @@ impl Device {
         unsafe {
             let slim = DeviceSlim::new(device)?;
 
+            config.register_device(slim.id.clone(), slim.name.clone());
+
             let interface = slim.device.Activate(CLSCTX_ALL, None)?;
-            let session_manager = AudioSessionManager::new(slim.name()?, interface, config)?;
+            let session_manager = AudioSessionManager::new(slim.id.clone(), interface, config)?;
 
             Ok(Self { slim, session_manager })
         }
@@ -69,11 +84,15 @@ impl Device {
         unsafe { self.session_manager.initialize_sessions() }
     }
 
-    pub unsafe fn name(&self) -> windows_core::Result<String> {
-        unsafe { self.slim.name() }
-    }
-
     pub unsafe fn data_flow(&self) -> windows_core::Result<EDataFlow> {
         unsafe { self.slim.device.cast::<IMMEndpoint>()?.GetDataFlow() }
+    }
+
+    pub fn id(&self) -> Arc<str> {
+        self.slim.id.clone()
+    }
+
+    pub fn name(&self) -> Arc<str> {
+        self.slim.name.clone()
     }
 }
