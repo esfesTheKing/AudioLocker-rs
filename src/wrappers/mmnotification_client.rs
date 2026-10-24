@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use windows::Win32::Media::Audio::{
-    DEVICE_STATE_ACTIVE, DEVICE_STATE_NOTPRESENT, DEVICE_STATE_UNPLUGGED, IMMNotificationClient,
+    DEVICE_STATE_ACTIVE, DEVICE_STATE_DISABLED, DEVICE_STATE_NOTPRESENT, DEVICE_STATE_UNPLUGGED, IMMNotificationClient,
     IMMNotificationClient_Impl,
 };
 use windows_core::implement;
@@ -39,7 +39,9 @@ impl IMMNotificationClient_Impl for MMNotificationClient_Impl {
         }
 
         match dwnewstate {
-            DEVICE_STATE_UNPLUGGED | DEVICE_STATE_NOTPRESENT => self.OnDeviceRemoved(pwstrdeviceid),
+            DEVICE_STATE_UNPLUGGED | DEVICE_STATE_NOTPRESENT | DEVICE_STATE_DISABLED => {
+                self.OnDeviceRemoved(pwstrdeviceid)
+            }
             DEVICE_STATE_ACTIVE => self.OnDeviceAdded(pwstrdeviceid),
             _ => {
                 log::warn!("Unknown state '{:#?}' for {}", dwnewstate, unsafe {

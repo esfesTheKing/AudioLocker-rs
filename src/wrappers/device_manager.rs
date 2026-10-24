@@ -19,7 +19,7 @@ pub struct DeviceManager {
     sender: crossbeam_channel::Sender<MMEvent>,
     thread_handle: Option<thread::JoinHandle<()>>,
 
-    devices: Arc<RwLock<HashMap<String, Device>>>,
+    devices: Arc<RwLock<HashMap<Arc<str>, Device>>>,
     notification_client: Option<IMMNotificationClient>,
     enumerator: DeviceEnumerator,
 }
@@ -51,7 +51,11 @@ impl DeviceManager {
                 while let Ok(event) = receiver.recv() {
                     match event {
                         MMEvent::DeviceAdded(device_id) => {
-                            let device = match unsafe { enumerator.get_device_by_id(&device_id) } {
+                            if devices.read().contains_key(device_id.as_str()) {
+                                continue;
+                            }
+
+                            let device = match unsafe { enumerator.get_device_by_id(device_id.as_str()) } {
                                 Ok(device) => device,
                                 Err(error) => {
                                     log::error!("Unable to get device from `{device_id}` due to {error:#?}");
@@ -70,7 +74,7 @@ impl DeviceManager {
                                 continue;
                             }
 
-                            let device_name = unsafe { device.name().unwrap_or_else(|_| String::new()) };
+                            let device_name = device.name();
                             if device_name.is_empty() {
                                 log::error!("Device `{device_id}` has empty name, stopping initializiation");
                                 continue;
@@ -90,29 +94,15 @@ impl DeviceManager {
 
                             log::info!("[{device_name}] Finished initializing device");
 
-                            devices.write().insert(device_name, device);
+                            // To not create a new Arc<str> that points to a different location than device's id we will use it's id here.
+                            devices.write().insert(device.id(), device);
                         }
                         MMEvent::DeviceRemoved(device_id) => {
-                            // It is cheap the get the a "new" MMDevice as we didn't call initialize_sessions() to make it expensive
-                            let device = match unsafe { enumerator.get_device_slim_by_id(&device_id) } {
-                                Ok(v) => v,
-                                Err(error) => {
-                                    log::error!("Unable to get device from `{device_id}` due to {error:#?}");
-                                    continue;
-                                }
-                            };
+                            let _ = devices.write().remove(&device_id as &str);
 
-                            let device_name = match unsafe { device.name() } {
-                                Ok(device_name) => device_name,
-                                Err(error) => {
-                                    log::error!("Unable to get {device_id}'s name due to {error:#?}");
-                                    continue;
-                                }
-                            };
-
-                            let _ = devices.write().remove(&device_name);
-
-                            log::info!("[{device_name}] Removed device");
+                            if let Some(device_name) = config.get_device_name(&device_id) {
+                                log::info!("[{device_name}] Removed device");
+                            }
                         }
                         MMEvent::Exit => return,
                     }
@@ -137,13 +127,13 @@ impl DeviceManager {
             let mut devices = self.devices.write();
 
             for device in self.enumerator.devices()?.iter() {
-                let device_name = device.name()?;
+                let device_name = device.name();
 
                 log::info!("[{device_name}] Initializing device");
                 device.initialize_sessions()?;
                 log::info!("[{device_name}] Finished initializing device");
 
-                devices.insert(device_name, device);
+                devices.insert(device.id(), device);
             }
 
             self.config.write_to_disk()?;

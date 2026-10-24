@@ -5,40 +5,33 @@ use windows::Win32::{
         DEVICE_STATE_ACTIVE, IMMDeviceEnumerator, IMMNotificationClient, MMDeviceEnumerator as MMDeviceEnumeratorGuid,
         eRender,
     },
-    System::Com::{CLSCTX_ALL, COINIT_MULTITHREADED, CoCreateInstance, CoInitializeEx, CoUninitialize},
+    System::Com::{CLSCTX_ALL, CoCreateInstance},
 };
 use windows_core::PCWSTR;
 
 use crate::{
     configuration::Configuration,
     constants::UTF16_NULL_TERMINATOR_LITTERAL,
-    wrappers::{Device, DeviceCollection, DeviceSlim},
+    wrappers::{ComInitializationGuard, Device, DeviceCollection},
 };
 
 pub struct DeviceEnumerator {
     config: Arc<Configuration>,
     enumerator: IMMDeviceEnumerator,
+    _com_guard: ComInitializationGuard,
 }
 
 impl DeviceEnumerator {
     pub unsafe fn new(config: Arc<Configuration>) -> windows_core::Result<Self> {
         unsafe {
-            CoInitializeEx(None, COINIT_MULTITHREADED).ok()?;
-
+            let com_guard = ComInitializationGuard::new()?;
             let enumerator: IMMDeviceEnumerator = CoCreateInstance(&MMDeviceEnumeratorGuid, None, CLSCTX_ALL)?;
 
-            Ok(Self { config, enumerator })
-        }
-    }
-
-    pub unsafe fn get_device_slim_by_id(&self, device_id: &str) -> windows_core::Result<DeviceSlim> {
-        let temporary_buffer: Vec<u16> = device_id.encode_utf16().chain(UTF16_NULL_TERMINATOR_LITTERAL).collect();
-        let pcwstr = PCWSTR(temporary_buffer.as_ptr());
-
-        unsafe {
-            let device = self.enumerator.GetDevice(pcwstr)?;
-
-            DeviceSlim::new(device)
+            Ok(Self {
+                config,
+                enumerator,
+                _com_guard: com_guard,
+            })
         }
     }
 
@@ -75,13 +68,5 @@ impl DeviceEnumerator {
         }
 
         Ok(())
-    }
-}
-
-impl Drop for DeviceEnumerator {
-    fn drop(&mut self) {
-        unsafe {
-            CoUninitialize();
-        }
     }
 }
