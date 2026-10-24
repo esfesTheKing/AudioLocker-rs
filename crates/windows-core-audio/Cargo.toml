@@ -1,5 +1,5 @@
 [package]
-name = "windows-core-audio"
+name = "windows_core_audio"
 version = "0.1.0"
 edition = "2024"
 
