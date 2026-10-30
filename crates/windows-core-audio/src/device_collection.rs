@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use windows::Win32::Media::Audio::IMMDeviceCollection;
 
-use crate::{configuration::Configuration, wrappers::Device};
+use crate::{configuration::Configuration, Device};
 
 pub struct DeviceCollection {
     collection: IMMDeviceCollection,

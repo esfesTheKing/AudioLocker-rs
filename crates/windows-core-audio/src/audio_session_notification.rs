@@ -1,7 +1,7 @@
 use windows::Win32::Media::Audio::{IAudioSessionNotification, IAudioSessionNotification_Impl};
 use windows_core::implement;
 
-use crate::wrappers::{AudioSession, audio_session_events_handler::AudioSessionEvents};
+use crate::{AudioSession, audio_session_events_handler::AudioSessionEvents};
 
 #[implement(IAudioSessionNotification)]
 pub struct AudioSessionNotification {

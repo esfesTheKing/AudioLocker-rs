@@ -9,7 +9,7 @@ use windows::Win32::Media::Audio::{IAudioSessionManager2, IAudioSessionNotificat
 
 use crate::{
     configuration::Configuration,
-    wrappers::{
+    {
         AudioSession, AudioSessionCollection, AudioSessionEventsHandler, AudioSessionNotification,
         audio_session_events_handler::AudioSessionEvents,
     },

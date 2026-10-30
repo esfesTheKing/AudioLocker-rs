@@ -10,7 +10,7 @@ use windows_core::AsImpl;
 
 use crate::{
     configuration::Configuration,
-    wrappers::{Device, DeviceEnumerator, MMEvent, MMNotificationClient},
+    {Device, DeviceEnumerator, MMEvent, MMNotificationClient},
 };
 
 pub struct DeviceManager {

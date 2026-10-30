@@ -11,8 +11,7 @@ use windows_core::PCWSTR;
 
 use crate::{
     configuration::Configuration,
-    constants::UTF16_NULL_TERMINATOR_LITTERAL,
-    wrappers::{ComInitializationGuard, Device, DeviceCollection},
+    {ComInitializationGuard, Device, DeviceCollection},
 };
 
 pub struct DeviceEnumerator {
@@ -36,7 +35,7 @@ impl DeviceEnumerator {
     }
 
     pub unsafe fn get_device_by_id(&self, device_id: &str) -> windows_core::Result<Device> {
-        let temporary_buffer: Vec<u16> = device_id.encode_utf16().chain(UTF16_NULL_TERMINATOR_LITTERAL).collect();
+        let temporary_buffer: Vec<u16> = device_id.encode_utf16().chain([0]).collect();
         let pcwstr = PCWSTR(temporary_buffer.as_ptr());
 
         unsafe {

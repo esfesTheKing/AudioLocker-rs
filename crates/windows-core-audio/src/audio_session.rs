@@ -4,7 +4,7 @@ use windows::Win32::{
 };
 use windows_core::Interface;
 
-use crate::wrappers::{AudioSessionEventsHandler, SimpleAudioVolume, utils::RaiiPwstr};
+use crate::{AudioSessionEventsHandler, SimpleAudioVolume, utils::RaiiPwstr};
 
 #[derive(Debug)]
 pub struct AudioSession {
