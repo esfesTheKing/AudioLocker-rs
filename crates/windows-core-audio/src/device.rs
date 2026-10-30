@@ -8,10 +8,7 @@ use windows::Win32::{
 };
 use windows_core::Interface;
 
-use crate::{
-    configuration::Configuration,
-    wrappers::{AudioSessionManager, utils::RaiiPwstr},
-};
+use crate::{AudioSessionManager, utils::RaiiPwstr};
 
 #[derive(Debug)]
 struct DeviceSlim {
@@ -32,7 +29,7 @@ unsafe impl Send for Device {}
 unsafe impl Sync for Device {}
 
 impl DeviceSlim {
-    pub unsafe fn new(device: IMMDevice) -> windows_core::Result<Self> {
+    pub fn new(device: IMMDevice) -> windows_core::Result<Self> {
         unsafe {
             let property_store = device.OpenPropertyStore(STGM_READ)?;
 
@@ -63,36 +60,36 @@ impl DeviceSlim {
 }
 
 impl Device {
-    pub unsafe fn new(device: IMMDevice, config: Arc<Configuration>) -> windows_core::Result<Self> {
-        unsafe {
-            let slim = DeviceSlim::new(device)?;
+    pub fn new(device: IMMDevice) -> windows_core::Result<Self> {
+        let slim = DeviceSlim::new(device)?;
 
-            config.register_device(slim.id.clone(), slim.name.clone());
+        let interface = unsafe { slim.device.Activate(CLSCTX_ALL, None)? };
+        let session_manager = AudioSessionManager::new(slim.id.clone(), slim.name.clone(), interface)?;
 
-            let interface = slim.device.Activate(CLSCTX_ALL, None)?;
-            let session_manager = AudioSessionManager::new(slim.id.clone(), interface, config)?;
-
-            Ok(Self { slim, session_manager })
-        }
+        Ok(Self { slim, session_manager })
     }
 
-    pub unsafe fn on_configuration_change(&self) {
-        self.session_manager.on_configuration_change()
-    }
-
-    pub unsafe fn initialize_sessions(&self) -> windows_core::Result<()> {
-        unsafe { self.session_manager.initialize_sessions() }
-    }
-
-    pub unsafe fn data_flow(&self) -> windows_core::Result<EDataFlow> {
+    pub fn data_flow(&self) -> windows_core::Result<EDataFlow> {
         unsafe { self.slim.device.cast::<IMMEndpoint>()?.GetDataFlow() }
     }
 
-    pub fn id(&self) -> Arc<str> {
-        self.slim.id.clone()
-    }
+    // pub fn id(&self) -> Arc<str> {
+    //     self.slim.id.clone()
+    // }
 
-    pub fn name(&self) -> Arc<str> {
-        self.slim.name.clone()
+    // pub fn name(&self) -> Arc<str> {
+    //     self.slim.name.clone()
+    // }
+}
+
+impl AsRef<DeviceSlim> for Device {
+    fn as_ref(&self) -> &DeviceSlim {
+        &self.slim
+    }
+}
+
+impl AsRef<AudioSessionManager> for Device {
+    fn as_ref(&self) -> &AudioSessionManager {
+        &self.session_manager
     }
 }

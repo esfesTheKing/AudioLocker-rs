@@ -6,7 +6,7 @@ use windows::Win32::Media::Audio::{
 };
 use windows_core::implement;
 
-use crate::wrappers::MMEvent;
+use crate::MMEvent;
 
 #[implement(IMMNotificationClient)]
 pub struct MMNotificationClient {

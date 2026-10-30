@@ -1,6 +1,6 @@
 use windows::Win32::Media::Audio::ISimpleAudioVolume;
-#[derive(Debug)]
 
+#[derive(Debug)]
 pub struct SimpleAudioVolume {
     audio_volume: ISimpleAudioVolume,
 }

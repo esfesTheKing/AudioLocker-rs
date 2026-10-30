@@ -1,6 +1,6 @@
 use windows::Win32::Media::Audio::IAudioSessionEnumerator;
 
-use crate::wrappers::AudioSession;
+use crate::AudioSession;
 
 pub struct AudioSessionCollection {
     enumerator: IAudioSessionEnumerator,
