@@ -10,7 +10,7 @@ use windows_core::Interface;
 
 use crate::{
     configuration::Configuration,
-    wrappers::{AudioSessionManager, utils::RaiiPwstr},
+    {AudioSessionManager, utils::RaiiPwstr},
 };
 
 #[derive(Debug)]

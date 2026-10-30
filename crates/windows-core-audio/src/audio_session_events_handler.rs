@@ -5,7 +5,7 @@ use windows::{
     core::implement,
 };
 
-use crate::wrappers::AudioSession;
+use crate::AudioSession;
 
 pub enum AudioSessionEvents {
     NewSession(AudioSession),
