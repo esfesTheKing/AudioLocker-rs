@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use windows::Win32::{
     Media::Audio::{
         DEVICE_STATE_ACTIVE, IMMDeviceEnumerator, IMMNotificationClient, MMDeviceEnumerator as MMDeviceEnumeratorGuid,
@@ -9,25 +7,20 @@ use windows::Win32::{
 };
 use windows_core::PCWSTR;
 
-use crate::{
-    configuration::Configuration,
-    {ComInitializationGuard, Device, DeviceCollection},
-};
+use crate::{ComInitializationGuard, Device, DeviceCollection};
 
 pub struct DeviceEnumerator {
-    config: Arc<Configuration>,
     enumerator: IMMDeviceEnumerator,
     _com_guard: ComInitializationGuard,
 }
 
 impl DeviceEnumerator {
-    pub unsafe fn new(config: Arc<Configuration>) -> windows_core::Result<Self> {
+    pub unsafe fn new() -> windows_core::Result<Self> {
         unsafe {
             let com_guard = ComInitializationGuard::new()?;
             let enumerator: IMMDeviceEnumerator = CoCreateInstance(&MMDeviceEnumeratorGuid, None, CLSCTX_ALL)?;
 
             Ok(Self {
-                config,
                 enumerator,
                 _com_guard: com_guard,
             })
@@ -41,7 +34,7 @@ impl DeviceEnumerator {
         unsafe {
             let device = self.enumerator.GetDevice(pcwstr)?;
 
-            Device::new(device, self.config.clone())
+            Device::new(device)
         }
     }
 
@@ -49,7 +42,7 @@ impl DeviceEnumerator {
         unsafe {
             let collection = self.enumerator.EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE)?;
 
-            Ok(DeviceCollection::new(collection, self.config.clone()))
+            Ok(DeviceCollection::new(collection))
         }
     }
 
