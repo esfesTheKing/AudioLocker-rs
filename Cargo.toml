@@ -1,2 +1,8 @@
 [workspace]
 members = ["audio-locker", "crates/windows-core-audio"]
+resolver = "3"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+strip = true
