@@ -5,25 +5,18 @@ use windows::{
     core::implement,
 };
 
-use crate::AudioSession;
-
-pub enum AudioSessionEvents {
-    NewSession(AudioSession),
-    VolumeChanged(Arc<str>, u8),
-    MuteStateChanged(Arc<str>, bool),
-    SessionClosed(Arc<str>),
-    Exit,
-}
+use crate::WindowsCoreAudioEvent;
 
 #[implement(IAudioSessionEvents)]
 pub struct AudioSessionEventsHandler {
-    name: Arc<str>,
-    sender: crossbeam_channel::Sender<AudioSessionEvents>,
+    device_id: Arc<str>,
+    session_name: Arc<str>,
+    sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>,
 }
 
-impl AudioSessionEventsHandler {
-    pub fn new(name: Arc<str>, sender: crossbeam_channel::Sender<AudioSessionEvents>) -> Self {
-        Self { name, sender }
+impl AudioSessionEventsHandler  {
+    pub fn new(device_id: Arc<str>, session_name: Arc<str>, sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>) -> Self {
+        Self { device_id, session_name, sender }
     }
 }
 
@@ -53,14 +46,16 @@ impl IAudioSessionEvents_Impl for AudioSessionEventsHandler_Impl {
         _eventcontext: *const windows_core::GUID,
     ) -> windows_core::Result<()> {
         // This method only failes when the receiver is disconnected, this should not happen here :)
-        let _ = self.sender.send(AudioSessionEvents::VolumeChanged(
-            self.name.clone(),
+        let _ = self.sender.send(WindowsCoreAudioEvent::SessionVolumeChanged(
+            self.device_id.clone(),
+            self.session_name.clone(),
             (newvolume * 100.0).clamp(0.0, 100.0) as u8,
         ));
 
         // This method only failes when the receiver is disconnected, this should not happen here :)
-        let _ = self.sender.send(AudioSessionEvents::MuteStateChanged(
-            self.name.clone(),
+        let _ = self.sender.send(WindowsCoreAudioEvent::SessionMuteChanged(
+            self.device_id.clone(),
+            self.session_name.clone(),
             newmute.as_bool(),
         ));
 
@@ -90,7 +85,7 @@ impl IAudioSessionEvents_Impl for AudioSessionEventsHandler_Impl {
     fn OnStateChanged(&self, newstate: windows::Win32::Media::Audio::AudioSessionState) -> windows_core::Result<()> {
         if newstate == AudioSessionStateExpired {
             // This method only failes when the receiver is disconnected, this should not happen here :)
-            let _ = self.sender.send(AudioSessionEvents::SessionClosed(self.name.clone()));
+            let _ = self.sender.send(WindowsCoreAudioEvent::SessionClosed(self.device_id.clone(), self.session_name.clone()));
         }
 
         Ok(())
@@ -101,7 +96,7 @@ impl IAudioSessionEvents_Impl for AudioSessionEventsHandler_Impl {
         _disconnectreason: windows::Win32::Media::Audio::AudioSessionDisconnectReason,
     ) -> windows_core::Result<()> {
         // This method only failes when the receiver is disconnected, this should not happen here :)
-        let _ = self.sender.send(AudioSessionEvents::SessionClosed(self.name.clone()));
+        let _ = self.sender.send(WindowsCoreAudioEvent::SessionClosed(self.device_id.clone(), self.session_name.clone()));
 
         Ok(())
     }

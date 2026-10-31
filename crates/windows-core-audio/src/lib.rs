@@ -7,7 +7,7 @@ mod com_guard;
 mod device;
 mod device_collection;
 mod device_enumerator;
-mod mmevent;
+mod event;
 mod mmnotification_client;
 mod simple_audio_volume;
 mod utils;
