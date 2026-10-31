@@ -15,7 +15,7 @@ pub struct DeviceEnumerator {
 }
 
 impl DeviceEnumerator {
-    pub unsafe fn new() -> windows_core::Result<Self> {
+    pub fn new() -> windows_core::Result<Self> {
         unsafe {
             let com_guard = ComInitializationGuard::new()?;
             let enumerator: IMMDeviceEnumerator = CoCreateInstance(&MMDeviceEnumeratorGuid, None, CLSCTX_ALL)?;
@@ -27,7 +27,7 @@ impl DeviceEnumerator {
         }
     }
 
-    pub unsafe fn get_device_by_id(&self, device_id: &str) -> windows_core::Result<Device> {
+    pub fn get_device_by_id(&self, device_id: &str) -> windows_core::Result<Device> {
         let temporary_buffer: Vec<u16> = device_id.encode_utf16().chain([0]).collect();
         let pcwstr = PCWSTR(temporary_buffer.as_ptr());
 
@@ -38,7 +38,7 @@ impl DeviceEnumerator {
         }
     }
 
-    pub unsafe fn devices(&self) -> windows_core::Result<DeviceCollection> {
+    pub fn devices(&self) -> windows_core::Result<DeviceCollection> {
         unsafe {
             let collection = self.enumerator.EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE)?;
 
@@ -46,7 +46,7 @@ impl DeviceEnumerator {
         }
     }
 
-    pub unsafe fn register_client(&self, client: Option<&IMMNotificationClient>) -> windows_core::Result<()> {
+    pub fn register_client(&self, client: Option<&IMMNotificationClient>) -> windows_core::Result<()> {
         unsafe {
             self.enumerator.RegisterEndpointNotificationCallback(client)?;
         }
@@ -54,7 +54,7 @@ impl DeviceEnumerator {
         Ok(())
     }
 
-    pub unsafe fn unregister_client(&self, client: Option<&IMMNotificationClient>) -> windows_core::Result<()> {
+    pub fn unregister_client(&self, client: Option<&IMMNotificationClient>) -> windows_core::Result<()> {
         unsafe {
             self.enumerator.UnregisterEndpointNotificationCallback(client)?;
         }
