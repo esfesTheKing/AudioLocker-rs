@@ -20,8 +20,8 @@ pub struct AudioSession {
 //  the interface from the start.
 //  https://learn.microsoft.com/en-us/windows/win32/api/audiopolicy/nn-audiopolicy-iaudiosessioncontrol
 
-unsafe impl Send for AudioSession {}
-unsafe impl Sync for AudioSession {}
+// unsafe impl Send for AudioSession {}
+// unsafe impl Sync for AudioSession {}
 
 impl AudioSession {
     pub fn new(audio_session: IAudioSessionControl) -> windows_core::Result<Self> {
