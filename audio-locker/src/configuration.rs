@@ -173,13 +173,13 @@ impl Configuration {
         }
     }
 
-    pub fn register_session(&self, device_id: &str, session_id: String) -> Option<()> {
+    pub fn register_session(&self, device_id: &str, session_id: String) -> Option<AudioSessionConfiguration> {
         let default_volume_level = self.data.read().default_volume_level;
         let device_name = &self.get_device_name(device_id)? as &str;
 
         let mut data = self.data.write();
 
-        data.config
+        let entry = data.config
             .get_mut(device_name)?
             .0
             .entry(session_id)
@@ -188,7 +188,7 @@ impl Configuration {
                 is_manual: false,
             });
 
-        Some(())
+        Some(entry.to_owned())
     }
 
     pub fn read_from_disk(&self) -> io::Result<()> {

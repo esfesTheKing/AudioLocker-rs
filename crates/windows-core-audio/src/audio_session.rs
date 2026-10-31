@@ -4,7 +4,10 @@ use windows::Win32::{
 };
 use windows_core::Interface;
 
-use crate::{AudioSessionEventsHandler, SimpleAudioVolume, utils::RaiiPwstr};
+use crate::{
+    AudioSessionEventsHandler, SimpleAudioVolume,
+    utils::{RaiiPwstr, get_session_name},
+};
 
 #[derive(Debug)]
 pub struct AudioSession {
@@ -20,8 +23,8 @@ pub struct AudioSession {
 //  the interface from the start.
 //  https://learn.microsoft.com/en-us/windows/win32/api/audiopolicy/nn-audiopolicy-iaudiosessioncontrol
 
-// unsafe impl Send for AudioSession {}
-// unsafe impl Sync for AudioSession {}
+unsafe impl Send for AudioSession {}
+unsafe impl Sync for AudioSession {}
 
 impl AudioSession {
     pub fn new(audio_session: IAudioSessionControl) -> windows_core::Result<Self> {
@@ -40,6 +43,10 @@ impl AudioSession {
 
     pub fn is_system_sound(&self) -> bool {
         unsafe { self.session.IsSystemSoundsSession() == S_OK }
+    }
+
+    pub fn name(&self) -> String {
+        get_session_name(self).unwrap_or_else(|_| "unknown".to_string())
     }
 
     pub fn display_name(&self) -> windows_core::Result<String> {
@@ -82,12 +89,10 @@ impl AudioSession {
     }
 
     fn unregister_event_handler(&mut self) {
+        let name = self.name();
+
         if self.events_handler.is_none() {
-            // TODO: instead of only using Self::display_name(), refactor to have the same logic for getting the session name as in AudioSessionManager::initailize_session
-            log::debug!(
-                "It's a little bit sus that we didn't register an events handler for `{}`",
-                self.display_name().unwrap_or_else(|_| "unknown".to_string())
-            );
+            log::debug!("It's a little bit sus that we didn't register an events handler for `{name}`");
             return;
         }
 

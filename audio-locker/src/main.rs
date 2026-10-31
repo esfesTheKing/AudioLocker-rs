@@ -1,11 +1,11 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod configuration;
+mod audio_manager;
 mod constants;
 mod logging;
 mod registry;
 mod utils;
-mod wrappers;
 
 use std::{error::Error, sync::Arc};
 
@@ -22,6 +22,7 @@ use tray_icon::{
     TrayIconBuilder,
     menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
 };
+use audio_manager::AudioManager;
 
 use crate::{
     configuration::Configuration,
@@ -29,7 +30,6 @@ use crate::{
     logging::{get_logging_directory, init_logging},
     registry::{is_enabled_on_startup, update_enabled_on_startup},
     utils::{get_configuration_file_path, get_icon_for_theme},
-    wrappers::DeviceManager,
 };
 
 enum UserEvent {
@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     //  Rust's compiler thinks that FnMut can be called again, event though we drop on
     //  the 'Exit' event, rust can't know that at compile time.
     let mut mm_manager = {
-        let manager = DeviceManager::new(configuration.clone())?;
+        let manager = AudioManager::new(configuration.clone())?;
 
         log::info!("Initializing devices");
         manager.initialize_devices()?;

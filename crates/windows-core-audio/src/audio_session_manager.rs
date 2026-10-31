@@ -32,7 +32,7 @@ impl AudioSessionManager {
         unsafe { Ok(AudioSessionCollection::new(self.manager.GetSessionEnumerator()?)) }
     }
 
-    fn register_notifications(&mut self, notification: AudioSessionNotification) -> windows_core::Result<()> {
+    pub fn register_notifications(&mut self, notification: AudioSessionNotification) -> windows_core::Result<()> {
         if self.notification.is_none() {
             let interface = Some(IAudioSessionNotification::from(notification));
 

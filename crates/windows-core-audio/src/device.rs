@@ -11,12 +11,12 @@ use windows_core::Interface;
 use crate::{AudioSessionManager, utils::RaiiPwstr};
 
 #[derive(Debug)]
-struct DeviceSlim {
+pub struct DeviceSlim {
     device: IMMDevice,
 
     // Cache
-    id: Arc<str>,
-    name: Arc<str>,
+    pub id: Arc<str>,
+    pub name: Arc<str>,
 }
 
 #[derive(Debug)]
@@ -88,8 +88,8 @@ impl AsRef<DeviceSlim> for Device {
     }
 }
 
-impl AsRef<AudioSessionManager> for Device {
-    fn as_ref(&self) -> &AudioSessionManager {
-        &self.session_manager
+impl AsMut<AudioSessionManager> for Device {
+    fn as_mut(&mut self) -> &mut AudioSessionManager {
+        &mut self.session_manager
     }
 }
