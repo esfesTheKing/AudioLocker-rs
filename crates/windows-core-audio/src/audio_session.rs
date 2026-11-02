@@ -64,11 +64,18 @@ impl AudioSession {
     }
 
     pub fn set_volume(&self, volume: u8) -> windows_core::Result<()> {
-        unsafe { self.volume_control.set_volume(volume as f32 / 100.0) }
+        self.volume_control.set_volume(f32::from(volume) / 100.0)
     }
 
     pub fn get_volume(&self) -> windows_core::Result<u8> {
-        unsafe { self.volume_control.get_volume().map(|volume| (volume * 100.) as u8) }
+        let volume = self.volume_control.get_volume()?;
+
+        // https://learn.microsoft.com/en-us/windows/win32/api/audioclient/nf-audioclient-isimpleaudiovolume-getmastervolume
+        if volume < 0.0 || volume > 1.0 {
+            unreachable!("Volume range is promised to be between 0.0 and 1.0");
+        }
+
+        Ok((volume * 100.) as u8)
     }
 
     pub fn process_id(&self) -> windows_core::Result<u32> {
