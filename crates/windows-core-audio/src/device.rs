@@ -72,14 +72,6 @@ impl Device {
     pub fn data_flow(&self) -> windows_core::Result<EDataFlow> {
         unsafe { self.slim.device.cast::<IMMEndpoint>()?.GetDataFlow() }
     }
-
-    // pub fn id(&self) -> Arc<str> {
-    //     self.slim.id.clone()
-    // }
-
-    // pub fn name(&self) -> Arc<str> {
-    //     self.slim.name.clone()
-    // }
 }
 
 impl AsRef<DeviceSlim> for Device {
