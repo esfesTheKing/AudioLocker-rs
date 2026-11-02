@@ -64,7 +64,7 @@ impl Device {
         let slim = DeviceSlim::new(device)?;
 
         let interface = unsafe { slim.device.Activate(CLSCTX_ALL, None)? };
-        let session_manager = AudioSessionManager::new(slim.id.clone(), slim.name.clone(), interface)?;
+        let session_manager = AudioSessionManager::new(slim.name.clone(), interface)?;
 
         Ok(Self { slim, session_manager })
     }

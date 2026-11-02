@@ -14,7 +14,7 @@ use windows_core_audio::{
 };
 
 struct DeviceStore {
-    device: Device,
+    _device: Device,
     sessions: HashMap<Arc<str>, AudioSession>,
 }
 
@@ -109,7 +109,7 @@ impl AudioManager {
                             devices.insert(
                                 device.as_ref().id.clone(),
                                 DeviceStore {
-                                    device,
+                                    _device: device,
                                     sessions: HashMap::new(),
                                 },
                             );
@@ -151,16 +151,13 @@ impl AudioManager {
                             }
                         }
                         WindowsCoreAudioEvent::SessionVolumeChanged(device_id, session_name, volume) => {
-                            if let Some(store) = devices.get(&device_id) {
-                                if let Some(session) = store.sessions.get(&session_name) {
-                                    if let Some(config_entry) = config.get_session_config(&device_id, &session_name) {
-                                        if volume != config_entry.volume_level {
+                            if let Some(store) = devices.get(&device_id)
+                                && let Some(session) = store.sessions.get(&session_name)
+                                    && let Some(config_entry) = config.get_session_config(&device_id, &session_name)
+                                        && volume != config_entry.volume_level {
                                             // TODO:
                                             let _ = session.set_volume(config_entry.volume_level);
                                         }
-                                    }
-                                }
-                            }
                         }
                         WindowsCoreAudioEvent::SessionMuteChanged(_, _, _) => {
                             // We do not care about the mute state of a session
@@ -231,14 +228,13 @@ impl Drop for AudioManager {
         //    Owning it via `take()` guarantees that.
         //
         //  links to docs: https://learn.microsoft.com/en-us/windows/win32/api/mmdeviceapi/nf-mmdeviceapi-immdeviceenumerator-unregisterendpointnotificationcallback
-        if let Some(client) = self.notification_client.take() {
-            if let Err(error) = self.enumerator.unregister_client(Some(&client)) {
+        if let Some(client) = self.notification_client.take()
+            && let Err(error) = self.enumerator.unregister_client(Some(&client)) {
                 log::error!("Error occurred when unregistering client due to {error:#?}");
 
                 // The enumerator may still hold a raw pointer to the client; leak it rather than
                 // free an object the OS could still call into.
                 std::mem::forget(client);
             }
-        }
     }
 }

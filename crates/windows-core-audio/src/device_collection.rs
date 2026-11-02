@@ -41,7 +41,7 @@ impl Iterator for DeviceCollectionIterator<'_> {
                 .collection
                 .collection
                 .Item(self.index)
-                .and_then(|interface| Device::new(interface))
+                .and_then(Device::new)
                 .ok();
 
             self.index += 1;

@@ -8,20 +8,17 @@ use crate::{AudioSessionCollection, AudioSessionNotification};
 pub struct AudioSessionManager {
     notification: Option<IAudioSessionNotification>,
     manager: IAudioSessionManager2,
-    device_id: Arc<str>,
     device_name: Arc<str>,
 }
 
 impl AudioSessionManager {
     pub fn new(
-        device_id: Arc<str>,
         device_name: Arc<str>,
         manager: IAudioSessionManager2,
     ) -> windows_core::Result<Self> {
         let manager = Self {
             manager,
             notification: None,
-            device_id,
             device_name,
         };
 

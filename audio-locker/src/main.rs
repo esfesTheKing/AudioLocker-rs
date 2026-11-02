@@ -149,16 +149,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                         let icon = get_icon_for_theme(window.theme());
 
                         let result = icon.with(|icon| {
-                            let result = match tray_icon.set_icon(Some(icon.clone())) {
+                            
+
+                            match tray_icon.set_icon(Some(icon.clone())) {
                                 Ok(_) => Some(()),
                                 Err(error) => {
                                     log::warn!("Error occured while trying to update the icon: {:#?}", error);
 
                                     None
                                 }
-                            };
-
-                            result
+                            }
                         });
 
                         if result.is_some() {
