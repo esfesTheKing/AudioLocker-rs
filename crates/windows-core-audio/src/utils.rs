@@ -16,7 +16,7 @@ use crate::AudioSession;
 pub struct RaiiPwstr(pub PWSTR);
 
 impl RaiiPwstr {
-    pub unsafe fn to_string(&self) -> windows_core::Result<String> {
+    pub fn to_string(&self) -> windows_core::Result<String> {
         unsafe { self.0.to_string().map_err(windows_core::Error::from) }
     }
 }

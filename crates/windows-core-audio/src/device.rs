@@ -51,11 +51,10 @@ impl DeviceSlim {
     }
 
     fn id(device: &IMMDevice) -> windows_core::Result<String> {
-        unsafe {
-            let result = RaiiPwstr(device.GetId()?);
+        let device_id = unsafe { device.GetId()? };
+        let result = RaiiPwstr(device_id);
 
-            result.to_string()
-        }
+        result.to_string()
     }
 }
 

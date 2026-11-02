@@ -50,19 +50,17 @@ impl AudioSession {
     }
 
     pub fn display_name(&self) -> windows_core::Result<String> {
-        unsafe {
-            let pwstr = RaiiPwstr(self.session.GetDisplayName()?);
+        let display_name = unsafe { self.session.GetDisplayName()? };
+        let pwstr = RaiiPwstr(display_name);
 
-            pwstr.to_string()
-        }
+        pwstr.to_string()
     }
 
     pub fn identifier(&self) -> windows_core::Result<String> {
-        unsafe {
-            let pwstr = RaiiPwstr(self.session.GetSessionIdentifier()?);
+        let session_id = unsafe { self.session.GetSessionIdentifier()? };
+        let pwstr = RaiiPwstr(session_id);
 
-            pwstr.to_string()
-        }
+        pwstr.to_string()
     }
 
     pub fn set_volume(&self, volume: u8) -> windows_core::Result<()> {
