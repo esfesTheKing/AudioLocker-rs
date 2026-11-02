@@ -41,12 +41,12 @@ impl AudioManager {
         enumerator.register_client(notification_client.as_ref())?;
 
         let thread_handle = {
-            let mut devices: HashMap<Arc<str>, DeviceStore> = HashMap::new();
-
             let config = config.clone();
             let sender = sender.clone();
 
             thread::spawn(move || {
+                let mut devices: HashMap<Arc<str>, DeviceStore> = HashMap::new();
+
                 let enumerator: DeviceEnumerator = match DeviceEnumerator::new() {
                     Ok(v) => v,
                     Err(error) => {

@@ -25,9 +25,6 @@ pub struct Device {
     session_manager: AudioSessionManager,
 }
 
-unsafe impl Send for Device {}
-unsafe impl Sync for Device {}
-
 impl DeviceSlim {
     pub fn new(device: IMMDevice) -> windows_core::Result<Self> {
         unsafe {
