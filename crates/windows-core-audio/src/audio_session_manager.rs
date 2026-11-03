@@ -1,8 +1,11 @@
 use std::sync::Arc;
 
-use windows::Win32::Media::Audio::{IAudioSessionManager2, IAudioSessionNotification};
+use windows::Win32::{
+    Media::Audio::{IAudioSessionManager2, IAudioSessionNotification},
+    System::Com::CLSCTX_ALL,
+};
 
-use crate::{AudioSessionCollection, AudioSessionNotification};
+use crate::{AudioSessionCollection, AudioSessionNotification, DeviceSlim};
 
 #[derive(Debug)]
 pub struct AudioSessionManager {
@@ -12,14 +15,13 @@ pub struct AudioSessionManager {
 }
 
 impl AudioSessionManager {
-    pub fn new(
-        device_name: Arc<str>,
-        manager: IAudioSessionManager2,
-    ) -> windows_core::Result<Self> {
+    pub fn new(device_slim: &DeviceSlim) -> windows_core::Result<Self> {
+        let interface: IAudioSessionManager2 = unsafe { device_slim.device.Activate(CLSCTX_ALL, None)? };
+
         let manager = Self {
-            manager,
+            manager: interface,
             notification: None,
-            device_name,
+            device_name: device_slim.name.clone(),
         };
 
         Ok(manager)

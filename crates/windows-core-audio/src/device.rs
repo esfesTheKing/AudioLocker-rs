@@ -3,7 +3,7 @@ use std::sync::Arc;
 use windows::Win32::{
     Devices::FunctionDiscovery::PKEY_Device_FriendlyName,
     Media::Audio::{EDataFlow, IMMDevice, IMMEndpoint},
-    System::Com::{CLSCTX_ALL, STGM_READ},
+    System::Com::STGM_READ,
     UI::Shell::PropertiesSystem::IPropertyStore,
 };
 use windows_core::Interface;
@@ -12,7 +12,7 @@ use crate::{AudioSessionManager, utils::RaiiPwstr};
 
 #[derive(Debug)]
 pub struct DeviceSlim {
-    device: IMMDevice,
+    pub(crate) device: IMMDevice,
 
     // Cache
     pub id: Arc<str>,
@@ -59,8 +59,7 @@ impl Device {
     pub fn new(device: IMMDevice) -> windows_core::Result<Self> {
         let slim = DeviceSlim::new(device)?;
 
-        let interface = unsafe { slim.device.Activate(CLSCTX_ALL, None)? };
-        let session_manager = AudioSessionManager::new(slim.name.clone(), interface)?;
+        let session_manager = AudioSessionManager::new(&slim)?;
 
         Ok(Self { slim, session_manager })
     }
