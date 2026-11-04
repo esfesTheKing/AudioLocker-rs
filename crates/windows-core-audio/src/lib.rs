@@ -25,3 +25,4 @@ pub use device::{Device, DeviceSlim};
 pub use device_enumerator::DeviceEnumerator;
 pub use event::WindowsCoreAudioEvent;
 pub use mmnotification_client::MMNotificationClient;
+pub use utils::SameThreadUsed;

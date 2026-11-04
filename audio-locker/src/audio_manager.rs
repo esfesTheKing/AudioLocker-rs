@@ -10,7 +10,7 @@ use windows_core::AsImpl;
 use crate::configuration::Configuration;
 use windows_core_audio::{
     AudioSession, AudioSessionEventsHandler, AudioSessionNotification, Device, DeviceEnumerator, DeviceSlim,
-    MMNotificationClient, WindowsCoreAudioEvent,
+    MMNotificationClient, SameThreadUsed, WindowsCoreAudioEvent,
 };
 
 struct DeviceStore {
@@ -102,7 +102,10 @@ impl AudioManager {
                             //  1. unwrap
                             //  2. Verify that AudioSession is on the same thread (here is 100% correct, but for new session notifications we need to verify - maybe add a runtime verification step)
                             for session in audio_session_manager.get_sessions().unwrap().iter() {
-                                let _ = sender.send(WindowsCoreAudioEvent::SessionAdded(device_id.clone(), session));
+                                let _ = sender.send(WindowsCoreAudioEvent::SessionAdded(
+                                    device_id.clone(),
+                                    SameThreadUsed::new(session),
+                                ));
                             }
 
                             config.register_device(device_id.clone(), device_name.clone());
@@ -122,7 +125,9 @@ impl AudioManager {
                                 log::info!("[{device_name}] Removed device");
                             }
                         }
-                        WindowsCoreAudioEvent::SessionAdded(device_id, mut session) => {
+                        WindowsCoreAudioEvent::SessionAdded(device_id, session) => {
+                            let mut session = session.unlock().unwrap();
+
                             if let Some(store) = devices.get_mut(&device_id) {
                                 let session_name: Arc<str> = Arc::from(session.name());
 
@@ -134,6 +139,7 @@ impl AudioManager {
                                 // TODO: handle
                                 let _ = session.register_event_handler(event_handler);
 
+                                // TODO: unwrap
                                 store.sessions.insert(session_name.clone(), session);
 
                                 let entry = config.register_session(&device_id, session_name.to_string()).unwrap();
@@ -153,11 +159,12 @@ impl AudioManager {
                         WindowsCoreAudioEvent::SessionVolumeChanged(device_id, session_name, volume) => {
                             if let Some(store) = devices.get(&device_id)
                                 && let Some(session) = store.sessions.get(&session_name)
-                                    && let Some(config_entry) = config.get_session_config(&device_id, &session_name)
-                                        && volume != config_entry.volume_level {
-                                            // TODO:
-                                            let _ = session.set_volume(config_entry.volume_level);
-                                        }
+                                && let Some(config_entry) = config.get_session_config(&device_id, &session_name)
+                                && volume != config_entry.volume_level
+                            {
+                                // TODO:
+                                let _ = session.set_volume(config_entry.volume_level);
+                            }
                         }
                         WindowsCoreAudioEvent::SessionMuteChanged(_, _, _) => {
                             // We do not care about the mute state of a session
@@ -229,12 +236,13 @@ impl Drop for AudioManager {
         //
         //  links to docs: https://learn.microsoft.com/en-us/windows/win32/api/mmdeviceapi/nf-mmdeviceapi-immdeviceenumerator-unregisterendpointnotificationcallback
         if let Some(client) = self.notification_client.take()
-            && let Err(error) = self.enumerator.unregister_client(Some(&client)) {
-                log::error!("Error occurred when unregistering client due to {error:#?}");
+            && let Err(error) = self.enumerator.unregister_client(Some(&client))
+        {
+            log::error!("Error occurred when unregistering client due to {error:#?}");
 
-                // The enumerator may still hold a raw pointer to the client; leak it rather than
-                // free an object the OS could still call into.
-                std::mem::forget(client);
-            }
+            // The enumerator may still hold a raw pointer to the client; leak it rather than
+            // free an object the OS could still call into.
+            std::mem::forget(client);
+        }
     }
 }

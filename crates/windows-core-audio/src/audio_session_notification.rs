@@ -3,7 +3,7 @@ use std::sync::Arc;
 use windows::Win32::Media::Audio::{IAudioSessionNotification, IAudioSessionNotification_Impl};
 use windows_core::implement;
 
-use crate::{AudioSession, WindowsCoreAudioEvent};
+use crate::{AudioSession, SameThreadUsed, WindowsCoreAudioEvent};
 
 #[implement(IAudioSessionNotification)]
 pub struct AudioSessionNotification {
@@ -27,9 +27,10 @@ impl IAudioSessionNotification_Impl for AudioSessionNotification_Impl {
             let session = AudioSession::new(interface)?;
 
             // This method only failes when the receiver is disconnected, this should not happen here :)
-            let _ = self
-                .sender
-                .send(WindowsCoreAudioEvent::SessionAdded(self.device_id.clone(), session));
+            let _ = self.sender.send(WindowsCoreAudioEvent::SessionAdded(
+                self.device_id.clone(),
+                SameThreadUsed::new(session),
+            ));
         }
 
         Ok(())

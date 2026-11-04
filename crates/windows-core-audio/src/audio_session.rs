@@ -16,16 +16,6 @@ pub struct AudioSession {
     session: IAudioSessionControl2,
 }
 
-// Allow sending between threads.
-// NOTE:
-//  It's never explicitly mentioned in the docs that we can share IAudioSessionControl pointers between threads when using COM in MTA.
-//  But we can assume that we can, as it's mentioned that we must call .Release() on the interface from the same thread that owned
-//  the interface from the start.
-//  https://learn.microsoft.com/en-us/windows/win32/api/audiopolicy/nn-audiopolicy-iaudiosessioncontrol
-
-unsafe impl Send for AudioSession {}
-unsafe impl Sync for AudioSession {}
-
 impl AudioSession {
     pub fn new(audio_session: IAudioSessionControl) -> windows_core::Result<Self> {
         unsafe { Self::internal_new(audio_session.cast()?) }
