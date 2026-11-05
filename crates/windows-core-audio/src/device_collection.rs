@@ -37,12 +37,7 @@ impl Iterator for DeviceCollectionIterator<'_> {
         }
 
         unsafe {
-            let session = self
-                .collection
-                .collection
-                .Item(self.index)
-                .and_then(Device::new)
-                .ok();
+            let session = self.collection.collection.Item(self.index).and_then(Device::new).ok();
 
             self.index += 1;
 

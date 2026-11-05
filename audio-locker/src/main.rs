@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod configuration;
 mod audio_manager;
+mod configuration;
 mod constants;
 mod logging;
 mod registry;
@@ -9,6 +9,7 @@ mod utils;
 
 use std::{error::Error, sync::Arc};
 
+use audio_manager::AudioManager;
 use named_lock::NamedLock;
 use notify::{Config, RecommendedWatcher, Watcher};
 use rfd::MessageDialog;
@@ -22,7 +23,6 @@ use tray_icon::{
     TrayIconBuilder,
     menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
 };
-use audio_manager::AudioManager;
 
 use crate::{
     configuration::Configuration,
@@ -148,16 +148,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                         let icon = get_icon_for_theme(window.theme());
 
-                        let result = icon.with(|icon| {
-                            
+                        let result = icon.with(|icon| match tray_icon.set_icon(Some(icon.clone())) {
+                            Ok(_) => Some(()),
+                            Err(error) => {
+                                log::warn!("Error occured while trying to update the icon: {:#?}", error);
 
-                            match tray_icon.set_icon(Some(icon.clone())) {
-                                Ok(_) => Some(()),
-                                Err(error) => {
-                                    log::warn!("Error occured while trying to update the icon: {:#?}", error);
-
-                                    None
-                                }
+                                None
                             }
                         });
 

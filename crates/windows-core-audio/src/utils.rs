@@ -1,6 +1,5 @@
 use std::path::Path;
 use std::sync::OnceLock;
-use std::thread::ThreadId;
 
 use parking_lot::RwLock;
 use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, RefreshKind, System};

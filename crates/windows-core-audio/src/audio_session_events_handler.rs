@@ -14,9 +14,17 @@ pub struct AudioSessionEventsHandler {
     sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>,
 }
 
-impl AudioSessionEventsHandler  {
-    pub fn new(device_id: Arc<str>, session_name: Arc<str>, sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>) -> Self {
-        Self { device_id, session_name, sender }
+impl AudioSessionEventsHandler {
+    pub fn new(
+        device_id: Arc<str>,
+        session_name: Arc<str>,
+        sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>,
+    ) -> Self {
+        Self {
+            device_id,
+            session_name,
+            sender,
+        }
     }
 }
 
@@ -85,7 +93,10 @@ impl IAudioSessionEvents_Impl for AudioSessionEventsHandler_Impl {
     fn OnStateChanged(&self, newstate: windows::Win32::Media::Audio::AudioSessionState) -> windows_core::Result<()> {
         if newstate == AudioSessionStateExpired {
             // This method only failes when the receiver is disconnected, this should not happen here :)
-            let _ = self.sender.send(WindowsCoreAudioEvent::SessionClosed(self.device_id.clone(), self.session_name.clone()));
+            let _ = self.sender.send(WindowsCoreAudioEvent::SessionClosed(
+                self.device_id.clone(),
+                self.session_name.clone(),
+            ));
         }
 
         Ok(())
@@ -96,7 +107,10 @@ impl IAudioSessionEvents_Impl for AudioSessionEventsHandler_Impl {
         _disconnectreason: windows::Win32::Media::Audio::AudioSessionDisconnectReason,
     ) -> windows_core::Result<()> {
         // This method only failes when the receiver is disconnected, this should not happen here :)
-        let _ = self.sender.send(WindowsCoreAudioEvent::SessionClosed(self.device_id.clone(), self.session_name.clone()));
+        let _ = self.sender.send(WindowsCoreAudioEvent::SessionClosed(
+            self.device_id.clone(),
+            self.session_name.clone(),
+        ));
 
         Ok(())
     }

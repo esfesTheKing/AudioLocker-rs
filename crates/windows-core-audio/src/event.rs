@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::{AudioSession};
+use crate::AudioSession;
 
 pub enum WindowsCoreAudioEvent {
     DeviceAdded(String),
