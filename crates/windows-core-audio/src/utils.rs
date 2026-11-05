@@ -14,31 +14,6 @@ use windows_core::PWSTR;
 
 use crate::AudioSession;
 
-pub struct SameThreadUsed<T> {
-    value: T,
-    thread_id: ThreadId,
-}
-
-unsafe impl<T> Send for SameThreadUsed<T> {}
-unsafe impl<T> Sync for SameThreadUsed<T> {}
-
-impl<T> SameThreadUsed<T> {
-    pub fn new(value: T) -> Self {
-        Self {
-            value,
-            thread_id: std::thread::current().id(),
-        }
-    }
-
-    pub fn unlock(self) -> Option<T> {
-        if self.thread_id != std::thread::current().id() {
-            None
-        } else {
-            Some(self.value)
-        }
-    }
-}
-
 pub struct RaiiPwstr(pub PWSTR);
 
 impl RaiiPwstr {

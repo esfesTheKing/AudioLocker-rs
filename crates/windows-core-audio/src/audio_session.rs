@@ -16,6 +16,12 @@ pub struct AudioSession {
     session: IAudioSessionControl2,
 }
 
+// SAFETY:
+//  It is safe to share COM interface pointers between threads in the same MTA.
+//  We use `crate::ComInitializationGuard` to initialize the apartment model,
+//  and currently it is set to use `COINIT_MULTITHREADED`.
+unsafe impl Send for AudioSession {}
+
 impl AudioSession {
     pub fn new(audio_session: IAudioSessionControl) -> windows_core::Result<Self> {
         unsafe { Self::internal_new(audio_session.cast()?) }

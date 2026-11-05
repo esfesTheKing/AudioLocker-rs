@@ -10,11 +10,11 @@ use windows_core::AsImpl;
 use crate::configuration::Configuration;
 use windows_core_audio::{
     AudioSession, AudioSessionEventsHandler, AudioSessionNotification, Device, DeviceEnumerator, DeviceSlim,
-    MMNotificationClient, SameThreadUsed, WindowsCoreAudioEvent,
+    MMNotificationClient, WindowsCoreAudioEvent,
 };
 
 struct DeviceStore {
-    _device: Device,
+    device: Device,
     sessions: HashMap<Arc<str>, AudioSession>,
 }
 
@@ -100,19 +100,15 @@ impl AudioManager {
 
                             // TODO:
                             //  1. unwrap
-                            //  2. Verify that AudioSession is on the same thread (here is 100% correct, but for new session notifications we need to verify - maybe add a runtime verification step)
                             for session in audio_session_manager.get_sessions().unwrap().iter() {
-                                let _ = sender.send(WindowsCoreAudioEvent::SessionAdded(
-                                    device_id.clone(),
-                                    SameThreadUsed::new(session),
-                                ));
+                                let _ = sender.send(WindowsCoreAudioEvent::SessionAdded(device_id.clone(), session));
                             }
 
                             config.register_device(device_id.clone(), device_name.clone());
                             devices.insert(
                                 device.as_ref().id.clone(),
                                 DeviceStore {
-                                    _device: device,
+                                    device,
                                     sessions: HashMap::new(),
                                 },
                             );
@@ -126,8 +122,6 @@ impl AudioManager {
                             }
                         }
                         WindowsCoreAudioEvent::SessionAdded(device_id, session) => {
-                            let mut session = session.unlock().unwrap();
-
                             if let Some(store) = devices.get_mut(&device_id) {
                                 let session_name: Arc<str> = Arc::from(session.name());
 
@@ -156,15 +150,25 @@ impl AudioManager {
                                 store.sessions.remove(&session_name);
                             }
                         }
-                        WindowsCoreAudioEvent::SessionVolumeChanged(device_id, session_name, volume) => {
+                        WindowsCoreAudioEvent::SessionVolumeChanged(device_id, session_name, new_volume) => {
                             if let Some(store) = devices.get(&device_id)
                                 && let Some(session) = store.sessions.get(&session_name)
                                 && let Some(config_entry) = config.get_session_config(&device_id, &session_name)
                                 && !config_entry.is_manual
-                                && volume != config_entry.volume_level
+                                && new_volume != config_entry.volume_level
                             {
-                                // TODO:
-                                let _ = session.set_volume(config_entry.volume_level);
+                                let device_name = &store.device.as_ref().name;
+                                if session.set_volume(config_entry.volume_level).is_ok() {
+                                    log::info!(
+                                        "[{}] [{session_name}] volume level was set from {new_volume} to {}",
+                                        device_name,
+                                        config_entry.volume_level
+                                    )
+                                } else {
+                                    // log::info!(
+                                    //     "[{device_name}] [{session_name}] failed to set volume level: {error:#?}"
+                                    // )
+                                }
                             }
                         }
                         WindowsCoreAudioEvent::SessionMuteChanged(_, _, _) => {
