@@ -9,8 +9,8 @@ use windows_core::AsImpl;
 
 use crate::configuration::Configuration;
 use windows_core_audio::{
-    AudioSession, AudioSessionEventsHandler, AudioSessionNotification, Device, DeviceEnumerator, DeviceSlim,
-    MMNotificationClient, WindowsCoreAudioEvent,
+    AudioSession, AudioSessionEventsHandler, AudioSessionNotification, Device, DeviceEnumerator, MMNotificationClient,
+    WindowsCoreAudioEvent,
 };
 
 struct DeviceStore {
@@ -81,10 +81,8 @@ impl AudioManager {
                                 continue;
                             }
 
-                            let device_slim: &DeviceSlim = device.as_ref();
-
-                            let device_name = device_slim.name.clone();
-                            let device_id = device_slim.id.clone();
+                            let device_name = device.name();
+                            let device_id = device.id();
 
                             if device_name.is_empty() {
                                 log::error!("Device `{device_id}` has empty name, stopping initializiation");
@@ -92,21 +90,19 @@ impl AudioManager {
                             }
 
                             log::info!("[{device_name}] Initializing device");
-                            let audio_session_manager = device.as_mut();
-
                             let notification = AudioSessionNotification::new(device_id.clone(), sender.clone());
                             // TODO:
-                            let _ = audio_session_manager.register_notifications(notification);
+                            let _ = device.register_notifications(notification);
 
                             // TODO:
                             //  1. unwrap
-                            for session in audio_session_manager.get_sessions().unwrap().iter() {
+                            for session in device.get_sessions().unwrap().iter() {
                                 let _ = sender.send(WindowsCoreAudioEvent::SessionAdded(device_id.clone(), session));
                             }
 
                             config.register_device(device_id.clone(), device_name.clone());
                             devices.insert(
-                                device.as_ref().id.clone(),
+                                device_id,
                                 DeviceStore {
                                     device,
                                     sessions: HashMap::new(),
@@ -121,7 +117,7 @@ impl AudioManager {
                                 log::info!("[{device_name}] Removed device");
                             }
                         }
-                        WindowsCoreAudioEvent::SessionAdded(device_id, session) => {
+                        WindowsCoreAudioEvent::SessionAdded(device_id, mut session) => {
                             if let Some(store) = devices.get_mut(&device_id) {
                                 let session_name: Arc<str> = Arc::from(session.name());
 
@@ -157,7 +153,7 @@ impl AudioManager {
                                 && !config_entry.is_manual
                                 && new_volume != config_entry.volume_level
                             {
-                                let device_name = &store.device.as_ref().name;
+                                let device_name = &store.device.name();
                                 if session.set_volume(config_entry.volume_level).is_ok() {
                                     log::info!(
                                         "[{}] [{session_name}] volume level was set from {new_volume} to {}",
@@ -192,9 +188,9 @@ impl AudioManager {
     pub fn initialize_devices(&self) -> windows_core::Result<()> {
         for device in self.enumerator.devices()?.iter() {
             // TODO
-            let _ = self.sender.send(WindowsCoreAudioEvent::DeviceAdded(
-                device.as_ref().id.clone().to_string(),
-            ));
+            let _ = self
+                .sender
+                .send(WindowsCoreAudioEvent::DeviceAdded(device.id().to_string()));
         }
 
         Ok(())

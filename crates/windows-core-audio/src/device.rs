@@ -8,7 +8,7 @@ use windows::Win32::{
 };
 use windows_core::Interface;
 
-use crate::{AudioSessionManager, utils::RaiiPwstr};
+use crate::{AudioSessionCollection, AudioSessionManager, AudioSessionNotification, utils::RaiiPwstr};
 
 #[derive(Debug)]
 pub struct DeviceSlim {
@@ -67,16 +67,19 @@ impl Device {
     pub fn data_flow(&self) -> windows_core::Result<EDataFlow> {
         unsafe { self.slim.device.cast::<IMMEndpoint>()?.GetDataFlow() }
     }
-}
 
-impl AsRef<DeviceSlim> for Device {
-    fn as_ref(&self) -> &DeviceSlim {
-        &self.slim
+    pub fn name(&self) -> Arc<str> {
+        self.slim.name.clone()
     }
-}
 
-impl AsMut<AudioSessionManager> for Device {
-    fn as_mut(&mut self) -> &mut AudioSessionManager {
-        &mut self.session_manager
+    pub fn id(&self) -> Arc<str> {
+        self.slim.id.clone()
+    }
+
+    pub fn register_notifications(&mut self, notification: AudioSessionNotification) -> windows_core::Result<()> {
+        self.session_manager.register_notifications(notification)
+    }
+    pub fn get_sessions(&self) -> windows_core::Result<AudioSessionCollection> {
+        self.session_manager.get_sessions()
     }
 }
