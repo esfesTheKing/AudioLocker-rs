@@ -61,7 +61,7 @@ impl AudioSession {
         let volume = self.volume_control.get_volume()?;
 
         // https://learn.microsoft.com/en-us/windows/win32/api/audioclient/nf-audioclient-isimpleaudiovolume-getmastervolume
-        if volume < 0.0 || volume > 1.0 {
+        if (0.0..1.0).contains(&volume) {
             unreachable!("Volume range is promised to be between 0.0 and 1.0");
         }
 
