@@ -160,6 +160,7 @@ impl AudioManager {
                             if let Some(store) = devices.get(&device_id)
                                 && let Some(session) = store.sessions.get(&session_name)
                                 && let Some(config_entry) = config.get_session_config(&device_id, &session_name)
+                                && !config_entry.is_manual
                                 && volume != config_entry.volume_level
                             {
                                 // TODO:
