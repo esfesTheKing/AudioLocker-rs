@@ -27,9 +27,10 @@ impl IAudioSessionNotification_Impl for AudioSessionNotification_Impl {
             let session = AudioSession::new(interface)?;
 
             // This method only failes when the receiver is disconnected, this should not happen here :)
-            let _ = self
-                .sender
-                .send(WindowsCoreAudioEvent::SessionAdded(self.device_id.clone(), session));
+            let _ = self.sender.send(WindowsCoreAudioEvent::SessionAdded {
+                device_id: self.device_id.clone(),
+                session,
+            });
         }
 
         Ok(())

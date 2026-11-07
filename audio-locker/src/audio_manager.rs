@@ -57,7 +57,7 @@ impl AudioManager {
 
                 while let Ok(event) = receiver.recv() {
                     match event {
-                        WindowsCoreAudioEvent::DeviceAdded(device_id) => {
+                        WindowsCoreAudioEvent::DeviceAdded { device_id } => {
                             if devices.contains_key(device_id.as_str()) {
                                 continue;
                             }
@@ -97,7 +97,10 @@ impl AudioManager {
                             // TODO:
                             //  1. unwrap
                             for session in device.get_sessions().unwrap().iter() {
-                                let _ = sender.send(WindowsCoreAudioEvent::SessionAdded(device_id.clone(), session));
+                                let _ = sender.send(WindowsCoreAudioEvent::SessionAdded {
+                                    device_id: device_id.clone(),
+                                    session,
+                                });
                             }
 
                             config.register_device(device_id.clone(), device_name.clone());
@@ -110,39 +113,46 @@ impl AudioManager {
                             );
                             log::info!("[{device_name}] Finished initializing device");
                         }
-                        WindowsCoreAudioEvent::DeviceRemoved(device_id) => {
+                        WindowsCoreAudioEvent::DeviceRemoved { device_id } => {
                             let _ = devices.remove(device_id.as_str());
 
                             if let Some(device_name) = config.get_device_name(&device_id) {
                                 log::info!("[{device_name}] Removed device");
                             }
                         }
-                        WindowsCoreAudioEvent::SessionAdded(device_id, mut session) => {
+                        WindowsCoreAudioEvent::SessionAdded { device_id, mut session } => {
                             if let Some(store) = devices.get_mut(&device_id) {
                                 let session_name: Arc<str> = Arc::from(session.name());
 
-                                if let Some(session_config) = config.register_session(&device_id, session_name.to_string()) {
+                                if let Some(session_config) =
+                                    config.register_session(&device_id, session_name.to_string())
+                                {
                                     let event_handler = AudioSessionEventsHandler::new(
                                         device_id.clone(),
                                         session_name.clone(),
-                                        sender.clone()
+                                        sender.clone(),
                                     );
                                     // TODO: handle
                                     let _ = session.register_event_handler(event_handler);
 
                                     store.sessions.insert(session_name.clone(), session);
 
-                                    let _ = sender.send(WindowsCoreAudioEvent::SessionVolumeChanged(
-                                        device_id.clone(),
-                                        session_name.clone(),
-                                        session_config.volume_level,
-                                    ));
+                                    let _ = sender.send(WindowsCoreAudioEvent::SessionVolumeChanged {
+                                        device_id: device_id.clone(),
+                                        session_name: session_name.clone(),
+                                        volume: session_config.volume_level,
+                                    });
                                 } else {
-                                    log::warn!("Device with id '{device_id}' must be registered before registering a session");
+                                    log::warn!(
+                                        "Device with id '{device_id}' must be registered before registering a session"
+                                    );
                                 }
                             }
                         }
-                        WindowsCoreAudioEvent::SessionClosed(device_id, session_name) => {
+                        WindowsCoreAudioEvent::SessionClosed {
+                            device_id,
+                            session_name,
+                        } => {
                             if let Some(store) = devices.get_mut(&device_id) {
                                 store.sessions.remove(&session_name);
 
@@ -151,7 +161,11 @@ impl AudioManager {
                                 }
                             }
                         }
-                        WindowsCoreAudioEvent::SessionVolumeChanged(device_id, session_name, new_volume) => {
+                        WindowsCoreAudioEvent::SessionVolumeChanged {
+                            device_id,
+                            session_name,
+                            volume: new_volume,
+                        } => {
                             if let Some(store) = devices.get(&device_id)
                                 && let Some(session) = store.sessions.get(&session_name)
                                 && let Some(config_entry) = config.get_session_config(&device_id, &session_name)
@@ -172,7 +186,7 @@ impl AudioManager {
                                 }
                             }
                         }
-                        WindowsCoreAudioEvent::SessionMuteChanged(_, _, _) => {
+                        WindowsCoreAudioEvent::SessionMuteChanged { .. } => {
                             // We do not care about the mute state of a session
                         }
                         WindowsCoreAudioEvent::Exit => return,
@@ -193,9 +207,9 @@ impl AudioManager {
     pub fn initialize_devices(&self) -> windows_core::Result<()> {
         for device in self.enumerator.devices()?.iter() {
             // TODO
-            let _ = self
-                .sender
-                .send(WindowsCoreAudioEvent::DeviceAdded(device.id().to_string()));
+            let _ = self.sender.send(WindowsCoreAudioEvent::DeviceAdded {
+                device_id: device.id().to_string(),
+            });
         }
 
         Ok(())

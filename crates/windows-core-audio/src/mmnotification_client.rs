@@ -57,7 +57,9 @@ impl IMMNotificationClient_Impl for MMNotificationClient_Impl {
             return Ok(());
         }
 
-        let event = WindowsCoreAudioEvent::DeviceAdded(unsafe { pwstrdeviceid.to_string()? });
+        let event = WindowsCoreAudioEvent::DeviceAdded {
+            device_id: unsafe { pwstrdeviceid.to_string()? },
+        };
 
         // This method only failes when the receiver is disconnected, this should not happen here :)
         if self.sender.send(event).is_err() {
@@ -74,7 +76,9 @@ impl IMMNotificationClient_Impl for MMNotificationClient_Impl {
             return Ok(());
         }
 
-        let event = WindowsCoreAudioEvent::DeviceRemoved(unsafe { pwstrdeviceid.to_string()? });
+        let event = WindowsCoreAudioEvent::DeviceRemoved {
+            device_id: unsafe { pwstrdeviceid.to_string()? },
+        };
 
         // This method only failes when the receiver is disconnected, this should not happen here :)
         if self.sender.send(event).is_err() {

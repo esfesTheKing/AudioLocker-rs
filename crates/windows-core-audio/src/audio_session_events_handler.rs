@@ -54,18 +54,18 @@ impl IAudioSessionEvents_Impl for AudioSessionEventsHandler_Impl {
         _eventcontext: *const windows_core::GUID,
     ) -> windows_core::Result<()> {
         // This method only failes when the receiver is disconnected, this should not happen here :)
-        let _ = self.sender.send(WindowsCoreAudioEvent::SessionVolumeChanged(
-            self.device_id.clone(),
-            self.session_name.clone(),
-            (newvolume * 100.0).clamp(0.0, 100.0) as u8,
-        ));
+        let _ = self.sender.send(WindowsCoreAudioEvent::SessionVolumeChanged {
+            device_id: self.device_id.clone(),
+            session_name: self.session_name.clone(),
+            volume: (newvolume * 100.0).clamp(0.0, 100.0) as u8,
+        });
 
         // This method only failes when the receiver is disconnected, this should not happen here :)
-        let _ = self.sender.send(WindowsCoreAudioEvent::SessionMuteChanged(
-            self.device_id.clone(),
-            self.session_name.clone(),
-            newmute.as_bool(),
-        ));
+        let _ = self.sender.send(WindowsCoreAudioEvent::SessionMuteChanged {
+            device_id: self.device_id.clone(),
+            session_name: self.session_name.clone(),
+            mute: newmute.as_bool(),
+        });
 
         Ok(())
     }
@@ -93,10 +93,10 @@ impl IAudioSessionEvents_Impl for AudioSessionEventsHandler_Impl {
     fn OnStateChanged(&self, newstate: windows::Win32::Media::Audio::AudioSessionState) -> windows_core::Result<()> {
         if newstate == AudioSessionStateExpired {
             // This method only failes when the receiver is disconnected, this should not happen here :)
-            let _ = self.sender.send(WindowsCoreAudioEvent::SessionClosed(
-                self.device_id.clone(),
-                self.session_name.clone(),
-            ));
+            let _ = self.sender.send(WindowsCoreAudioEvent::SessionClosed {
+                device_id: self.device_id.clone(),
+                session_name: self.session_name.clone(),
+            });
         }
 
         Ok(())
@@ -107,10 +107,10 @@ impl IAudioSessionEvents_Impl for AudioSessionEventsHandler_Impl {
         _disconnectreason: windows::Win32::Media::Audio::AudioSessionDisconnectReason,
     ) -> windows_core::Result<()> {
         // This method only failes when the receiver is disconnected, this should not happen here :)
-        let _ = self.sender.send(WindowsCoreAudioEvent::SessionClosed(
-            self.device_id.clone(),
-            self.session_name.clone(),
-        ));
+        let _ = self.sender.send(WindowsCoreAudioEvent::SessionClosed {
+            device_id: self.device_id.clone(),
+            session_name: self.session_name.clone(),
+        });
 
         Ok(())
     }
