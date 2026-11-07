@@ -121,29 +121,34 @@ impl AudioManager {
                             if let Some(store) = devices.get_mut(&device_id) {
                                 let session_name: Arc<str> = Arc::from(session.name());
 
-                                let event_handler = AudioSessionEventsHandler::new(
-                                    device_id.clone(),
-                                    session_name.clone(),
-                                    sender.clone(),
-                                );
-                                // TODO: handle
-                                let _ = session.register_event_handler(event_handler);
+                                if let Some(session_config) = config.register_session(&device_id, session_name.to_string()) {
+                                    let event_handler = AudioSessionEventsHandler::new(
+                                        device_id.clone(),
+                                        session_name.clone(),
+                                        sender.clone()
+                                    );
+                                    // TODO: handle
+                                    let _ = session.register_event_handler(event_handler);
 
-                                // TODO: unwrap
-                                store.sessions.insert(session_name.clone(), session);
+                                    store.sessions.insert(session_name.clone(), session);
 
-                                let entry = config.register_session(&device_id, session_name.to_string()).unwrap();
-                                // TODO: unwrap
-                                let _ = sender.send(WindowsCoreAudioEvent::SessionVolumeChanged(
-                                    device_id.clone(),
-                                    session_name.clone(),
-                                    entry.volume_level,
-                                ));
+                                    let _ = sender.send(WindowsCoreAudioEvent::SessionVolumeChanged(
+                                        device_id.clone(),
+                                        session_name.clone(),
+                                        session_config.volume_level,
+                                    ));
+                                } else {
+                                    log::warn!("Device with id '{device_id}' must be registered before registering a session");
+                                }
                             }
                         }
                         WindowsCoreAudioEvent::SessionClosed(device_id, session_name) => {
                             if let Some(store) = devices.get_mut(&device_id) {
                                 store.sessions.remove(&session_name);
+
+                                if let Some(device_name) = config.get_device_name(&device_id) {
+                                    log::info!("[{device_name}] [{session_name}] application closed");
+                                }
                             }
                         }
                         WindowsCoreAudioEvent::SessionVolumeChanged(device_id, session_name, new_volume) => {
@@ -154,16 +159,16 @@ impl AudioManager {
                                 && new_volume != config_entry.volume_level
                             {
                                 let device_name = &store.device.name();
-                                if session.set_volume(config_entry.volume_level).is_ok() {
+
+                                if let Err(error) = session.set_volume(config_entry.volume_level) {
                                     log::info!(
-                                        "[{}] [{session_name}] volume level was set from {new_volume} to {}",
-                                        device_name,
-                                        config_entry.volume_level
-                                    )
+                                        "[{device_name}] [{session_name}] failed to set volume level: {error:#?}"
+                                    );
                                 } else {
-                                    // log::info!(
-                                    //     "[{device_name}] [{session_name}] failed to set volume level: {error:#?}"
-                                    // )
+                                    log::info!(
+                                        "[{device_name}] [{session_name}] volume level was set from {new_volume} to {}",
+                                        config_entry.volume_level
+                                    );
                                 }
                             }
                         }
