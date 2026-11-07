@@ -1,5 +1,3 @@
-pub const UTF16_NULL_TERMINATOR_LITTERAL: [u16; 1] = [0];
-
 pub const APPLICATION_NAME: &str = cfg_select! {
     not(debug_assertions) => "AudioLocker",
     debug_assertions => "AudioLocker-Debug",

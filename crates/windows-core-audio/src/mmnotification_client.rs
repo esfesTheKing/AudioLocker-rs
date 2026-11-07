@@ -6,16 +6,16 @@ use windows::Win32::Media::Audio::{
 };
 use windows_core::implement;
 
-use crate::wrappers::MMEvent;
+use crate::WindowsCoreAudioEvent;
 
 #[implement(IMMNotificationClient)]
 pub struct MMNotificationClient {
-    sender: crossbeam_channel::Sender<MMEvent>,
+    sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>,
     enabled: AtomicBool,
 }
 
 impl MMNotificationClient {
-    pub fn new(sender: crossbeam_channel::Sender<MMEvent>, enabled: AtomicBool) -> Self {
+    pub fn new(sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>, enabled: AtomicBool) -> Self {
         Self { sender, enabled }
     }
 
@@ -57,7 +57,9 @@ impl IMMNotificationClient_Impl for MMNotificationClient_Impl {
             return Ok(());
         }
 
-        let event = MMEvent::DeviceAdded(unsafe { pwstrdeviceid.to_string()? });
+        let event = WindowsCoreAudioEvent::DeviceAdded {
+            device_id: unsafe { pwstrdeviceid.to_string()? },
+        };
 
         // This method only failes when the receiver is disconnected, this should not happen here :)
         if self.sender.send(event).is_err() {
@@ -74,7 +76,9 @@ impl IMMNotificationClient_Impl for MMNotificationClient_Impl {
             return Ok(());
         }
 
-        let event = MMEvent::DeviceRemoved(unsafe { pwstrdeviceid.to_string()? });
+        let event = WindowsCoreAudioEvent::DeviceRemoved {
+            device_id: unsafe { pwstrdeviceid.to_string()? },
+        };
 
         // This method only failes when the receiver is disconnected, this should not happen here :)
         if self.sender.send(event).is_err() {

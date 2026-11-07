@@ -9,12 +9,6 @@ use std::{
 
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};
-use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, RefreshKind, System};
-use windows::Win32::{
-    Storage::EnhancedStorage::PKEY_Software_ProductName,
-    UI::Shell::{IShellItem2, SHCreateItemFromParsingName},
-};
-use windows_core::HSTRING;
 
 use crate::constants::DEFAULT_VOLUME_LEVEL;
 
@@ -46,18 +40,6 @@ impl Drop for AudioConfiguration {
 pub struct Configuration {
     data: RwLock<AudioConfiguration>,
     config_path: PathBuf,
-
-    // TODO: is this really the best place to store this struct?
-    system_information: RwLock<System>,
-}
-
-fn get_process_name_from_file_information(path: &str) -> Option<String> {
-    unsafe {
-        SHCreateItemFromParsingName(&HSTRING::from(path), None)
-            .and_then(|shell_item: IShellItem2| shell_item.GetString(&PKEY_Software_ProductName))
-            .and_then(|prop| prop.to_string().map_err(windows_core::Error::from))
-            .ok()
-    }
 }
 
 impl Configuration {
@@ -76,36 +58,11 @@ impl Configuration {
                 _ => Err(error),
             },
         }?;
-        let system = System::new_with_specifics(RefreshKind::nothing().with_processes(ProcessRefreshKind::nothing()));
 
         Ok(Self {
             data: RwLock::new(audio_configuration),
             config_path: path,
-            system_information: RwLock::new(system),
         })
-    }
-
-    pub fn get_process_name(&self, process_id: u32) -> Option<String> {
-        let pid = Pid::from_u32(process_id);
-
-        let mut system_information = self.system_information.write();
-        system_information.refresh_processes_specifics(
-            ProcessesToUpdate::Some(&[pid]),
-            true,
-            ProcessRefreshKind::nothing().with_exe(sysinfo::UpdateKind::OnlyIfNotSet),
-        );
-
-        let process = system_information.process(pid)?;
-
-        process
-            .exe()
-            .and_then(Path::to_str)
-            .and_then(get_process_name_from_file_information)
-            .or_else(|| {
-                let string = process.name().to_str()?;
-
-                Some(string.strip_suffix(".exe").unwrap_or(string).to_owned())
-            })
     }
 
     fn factory_read_from_disk(path: &Path) -> io::Result<AudioConfiguration> {
@@ -173,13 +130,14 @@ impl Configuration {
         }
     }
 
-    pub fn register_session(&self, device_id: &str, session_id: String) -> Option<()> {
+    pub fn register_session(&self, device_id: &str, session_id: String) -> Option<AudioSessionConfiguration> {
         let default_volume_level = self.data.read().default_volume_level;
         let device_name = &self.get_device_name(device_id)? as &str;
 
         let mut data = self.data.write();
 
-        data.config
+        let entry = data
+            .config
             .get_mut(device_name)?
             .0
             .entry(session_id)
@@ -188,7 +146,7 @@ impl Configuration {
                 is_manual: false,
             });
 
-        Some(())
+        Some(entry.to_owned())
     }
 
     pub fn read_from_disk(&self) -> io::Result<()> {

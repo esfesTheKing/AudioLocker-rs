@@ -1,16 +1,20 @@
+use std::sync::Arc;
+
 use windows::Win32::Media::Audio::{IAudioSessionNotification, IAudioSessionNotification_Impl};
 use windows_core::implement;
 
-use crate::wrappers::{AudioSession, audio_session_events_handler::AudioSessionEvents};
+use crate::{AudioSession, WindowsCoreAudioEvent};
 
 #[implement(IAudioSessionNotification)]
 pub struct AudioSessionNotification {
-    sender: crossbeam_channel::Sender<AudioSessionEvents>,
+    device_id: Arc<str>,
+
+    sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>,
 }
 
 impl AudioSessionNotification {
-    pub fn new(sender: crossbeam_channel::Sender<AudioSessionEvents>) -> Self {
-        Self { sender }
+    pub fn new(device_id: Arc<str>, sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>) -> Self {
+        Self { device_id, sender }
     }
 }
 
@@ -23,7 +27,10 @@ impl IAudioSessionNotification_Impl for AudioSessionNotification_Impl {
             let session = AudioSession::new(interface)?;
 
             // This method only failes when the receiver is disconnected, this should not happen here :)
-            let _ = self.sender.send(AudioSessionEvents::NewSession(session));
+            let _ = self.sender.send(WindowsCoreAudioEvent::SessionAdded {
+                device_id: self.device_id.clone(),
+                session,
+            });
         }
 
         Ok(())

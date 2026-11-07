@@ -1,12 +1,9 @@
-use std::sync::Arc;
-
 use windows::Win32::Media::Audio::IMMDeviceCollection;
 
-use crate::{configuration::Configuration, wrappers::Device};
+use crate::Device;
 
 pub struct DeviceCollection {
     collection: IMMDeviceCollection,
-    config: Arc<Configuration>,
 }
 
 pub struct DeviceCollectionIterator<'a> {
@@ -15,8 +12,8 @@ pub struct DeviceCollectionIterator<'a> {
 }
 
 impl DeviceCollection {
-    pub fn new(collection: IMMDeviceCollection, config: Arc<Configuration>) -> Self {
-        Self { collection, config }
+    pub fn new(collection: IMMDeviceCollection) -> Self {
+        Self { collection }
     }
 
     pub fn len(&self) -> windows_core::Result<u32> {
@@ -40,12 +37,7 @@ impl Iterator for DeviceCollectionIterator<'_> {
         }
 
         unsafe {
-            let session = self
-                .collection
-                .collection
-                .Item(self.index)
-                .and_then(|interface| Device::new(interface, self.collection.config.clone()))
-                .ok();
+            let session = self.collection.collection.Item(self.index).and_then(Device::new).ok();
 
             self.index += 1;
 

@@ -1,14 +1,15 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod audio_manager;
 mod configuration;
 mod constants;
 mod logging;
 mod registry;
 mod utils;
-mod wrappers;
 
 use std::{error::Error, sync::Arc};
 
+use audio_manager::AudioManager;
 use named_lock::NamedLock;
 use notify::{Config, RecommendedWatcher, Watcher};
 use rfd::MessageDialog;
@@ -29,7 +30,6 @@ use crate::{
     logging::{get_logging_directory, init_logging},
     registry::{is_enabled_on_startup, update_enabled_on_startup},
     utils::{get_configuration_file_path, get_icon_for_theme},
-    wrappers::DeviceManager,
 };
 
 enum UserEvent {
@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     //  Rust's compiler thinks that FnMut can be called again, event though we drop on
     //  the 'Exit' event, rust can't know that at compile time.
     let mut mm_manager = {
-        let manager = DeviceManager::new(configuration.clone())?;
+        let manager = AudioManager::new(configuration.clone())?;
 
         log::info!("Initializing devices");
         manager.initialize_devices()?;
@@ -148,17 +148,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                         let icon = get_icon_for_theme(window.theme());
 
-                        let result = icon.with(|icon| {
-                            let result = match tray_icon.set_icon(Some(icon.clone())) {
-                                Ok(_) => Some(()),
-                                Err(error) => {
-                                    log::warn!("Error occured while trying to update the icon: {:#?}", error);
+                        let result = icon.with(|icon| match tray_icon.set_icon(Some(icon.clone())) {
+                            Ok(_) => Some(()),
+                            Err(error) => {
+                                log::warn!("Error occured while trying to update the icon: {:#?}", error);
 
-                                    None
-                                }
-                            };
-
-                            result
+                                None
+                            }
                         });
 
                         if result.is_some() {
