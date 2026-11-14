@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use windows::Win32::{
     Devices::FunctionDiscovery::PKEY_Device_FriendlyName,
-    Media::Audio::{EDataFlow, IMMDevice, IMMEndpoint},
+    Media::Audio::{DEVICE_STATE, EDataFlow, IMMDevice, IMMEndpoint},
     System::Com::STGM_READ,
     UI::Shell::PropertiesSystem::IPropertyStore,
 };
@@ -62,6 +62,10 @@ impl Device {
         let session_manager = AudioSessionManager::new(&slim)?;
 
         Ok(Self { slim, session_manager })
+    }
+
+    pub fn get_state(&self) -> windows_core::Result<DEVICE_STATE> {
+        unsafe { self.slim.device.GetState() }
     }
 
     pub fn data_flow(&self) -> windows_core::Result<EDataFlow> {

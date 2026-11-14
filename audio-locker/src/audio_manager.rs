@@ -4,10 +4,10 @@ use std::{
     thread,
 };
 
-use windows::Win32::Media::Audio::{IMMNotificationClient, eRender};
+use windows::Win32::Media::Audio::{DEVICE_STATE_ACTIVE, IMMNotificationClient, eRender};
 use windows_core::AsImpl;
 
-use crate::configuration::Configuration;
+use crate::{configuration::Configuration, constants::NON_ACTIVE_DEVICE_ADDED_SLEEP_TIME};
 use windows_core_audio::{
     AudioSession, AudioSessionEventsHandler, AudioSessionNotification, Device, DeviceEnumerator, MMNotificationClient,
     WindowsCoreAudioEvent,
@@ -86,6 +86,25 @@ impl AudioManager {
 
                             if device_name.is_empty() {
                                 log::error!("Device `{device_id}` has empty name, stopping initializiation");
+                                continue;
+                            }
+
+                            // TODO: we need to avoid infinite retry loop
+                            let state = device.get_state().unwrap();
+                            if state != DEVICE_STATE_ACTIVE {
+                                log::warn!(
+                                    "[{device_name}] Got a `DeviceAdded` notification but state is non active, will try again in a few seconds..."
+                                );
+
+                                let sender = sender.clone();
+                                thread::spawn(move || {
+                                    std::thread::sleep(NON_ACTIVE_DEVICE_ADDED_SLEEP_TIME);
+
+                                    let _ = sender.send(WindowsCoreAudioEvent::DeviceAdded {
+                                        device_id: device_id.to_string(),
+                                    });
+                                });
+
                                 continue;
                             }
 
