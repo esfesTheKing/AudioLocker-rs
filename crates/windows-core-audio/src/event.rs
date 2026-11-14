@@ -27,5 +27,6 @@ pub enum WindowsCoreAudioEvent {
         session_name: Arc<str>,
         mute: bool,
     },
+    Refresh,
     Exit,
 }

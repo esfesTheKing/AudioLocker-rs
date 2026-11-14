@@ -205,6 +205,21 @@ impl AudioManager {
                                 }
                             }
                         }
+                        WindowsCoreAudioEvent::Refresh => {
+                            for (device_id, device_store) in &devices {
+                                for (session_name, session) in &device_store.sessions {
+                                    // TODO: unwrap
+                                    let volume = session.get_volume().unwrap();
+
+                                    // TODO:
+                                    let _ = sender.send(WindowsCoreAudioEvent::SessionVolumeChanged {
+                                        device_id: device_id.clone(),
+                                        session_name: session_name.clone(),
+                                        volume,
+                                    });
+                                }
+                            }
+                        }
                         WindowsCoreAudioEvent::SessionMuteChanged { .. } => {
                             // We do not care about the mute state of a session
                         }
@@ -241,6 +256,7 @@ impl AudioManager {
             return;
         }
         // TODO:
+        let _ = self.sender.send(WindowsCoreAudioEvent::Refresh);
 
         log::info!("[Configuration] propagating change to devices");
     }
