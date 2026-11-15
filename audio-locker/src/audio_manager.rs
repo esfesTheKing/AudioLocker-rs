@@ -143,7 +143,7 @@ impl AudioManager {
                             if let Some(store) = devices.get_mut(&device_id) {
                                 let session_name: Arc<str> = Arc::from(session.name());
 
-                                if let Some(_) = config.register_session(&device_id, session_name.to_string()) {
+                                if config.register_session(&device_id, session_name.to_string()).is_some() {
                                     let event_handler = AudioSessionEventsHandler::new(
                                         device_id.clone(),
                                         session_name.clone(),
@@ -159,7 +159,7 @@ impl AudioManager {
                                     let _ = sender.send(WindowsCoreAudioEvent::SessionVolumeChanged {
                                         device_id: device_id.clone(),
                                         session_name: session_name.clone(),
-                                        volume: volume,
+                                        volume,
                                     });
                                 } else {
                                     log::warn!(
