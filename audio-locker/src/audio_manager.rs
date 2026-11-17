@@ -142,8 +142,12 @@ impl AudioManager {
                         WindowsCoreAudioEvent::SessionAdded { device_id, mut session } => {
                             if let Some(store) = devices.get_mut(&device_id) {
                                 let session_name: Arc<str> = Arc::from(session.name());
+                                // TODO: unwrap
+                                let device_name = config.get_device_name(&device_id).unwrap();
 
                                 if config.register_session(&device_id, session_name.to_string()).is_some() {
+                                    log::info!("[{device_name}] [{session_name}] Initializing session");
+
                                     let event_handler = AudioSessionEventsHandler::new(
                                         device_id.clone(),
                                         session_name.clone(),
@@ -161,6 +165,8 @@ impl AudioManager {
                                         session_name: session_name.clone(),
                                         volume,
                                     });
+
+                                    log::info!("[{device_name}] [{session_name}] Finished initializing session");
                                 } else {
                                     log::warn!(
                                         "Device with id '{device_id}' must be registered before registering a session"
