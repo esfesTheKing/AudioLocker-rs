@@ -101,9 +101,9 @@ impl Configuration {
     }
 
     pub fn get_session_config(&self, device_id: &str, session_id: &str) -> Option<AudioSessionConfiguration> {
-        let device_name = &self.get_device_name(device_id)? as &str;
+        let device_name = self.get_device_name(device_id)?;
 
-        self.data.read().config.get(device_name)?.0.get(session_id).cloned()
+        self.data.read().config.get(&device_name)?.0.get(session_id).cloned()
     }
 
     pub fn register_device(&self, device_id: Arc<str>, device_name: Arc<str>) {

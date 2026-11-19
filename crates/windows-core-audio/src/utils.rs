@@ -71,15 +71,14 @@ pub fn get_process_name(process_id: u32) -> Option<String> {
 }
 
 pub fn get_session_name(session: &AudioSession) -> windows_core::Result<String> {
-    let session_name = match session.is_system_sound() {
-        true => String::from("System Sounds"),
-        false => {
-            let display_name = session.display_name()?;
-            if display_name.is_empty() {
-                get_process_name(session.process_id()?).unwrap_or(display_name)
-            } else {
-                display_name
-            }
+    let session_name = if session.is_system_sound() {
+        String::from("System Sounds")
+    } else {
+        let display_name = session.display_name()?;
+        if display_name.is_empty() {
+            get_process_name(session.process_id()?).unwrap_or(display_name)
+        } else {
+            display_name
         }
     };
 

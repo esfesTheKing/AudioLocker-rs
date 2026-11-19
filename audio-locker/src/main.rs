@@ -28,7 +28,7 @@ use crate::{
     configuration::Configuration,
     constants::{APPLICATION_NAME, menu_item_text, set_icon_on_theme_change},
     logging::{get_logging_directory, init_logging},
-    registry::{is_enabled_on_startup, update_enabled_on_startup},
+    registry::{StartupStatus, is_enabled_on_startup, update_enabled_on_startup},
     utils::{get_configuration_file_path, get_icon_for_theme},
 };
 
@@ -97,9 +97,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let settings_i = MenuItem::new(menu_item_text::SETTINGS, true, None);
 
-    let startup_i = match is_enabled_on_startup()? {
-        true => MenuItem::new(menu_item_text::DISABLE_STARTUP, true, None),
-        false => MenuItem::new(menu_item_text::ENABLE_STARTUP, true, None),
+    let startup_i = if is_enabled_on_startup()? {
+        MenuItem::new(menu_item_text::DISABLE_STARTUP, true, None)
+    } else {
+        MenuItem::new(menu_item_text::ENABLE_STARTUP, true, None)
     };
 
     let logs_i = MenuItem::new(menu_item_text::LOGS, true, None);
@@ -140,7 +141,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             } => {
                 log::info!("Theme change was detected changed to {theme:#?}");
 
-                tray_icon.as_ref().inspect(|tray_icon| {
+                if let Some(tray_icon) = tray_icon.as_ref() {
                     for _ in 0..set_icon_on_theme_change::RETRY_COUNT {
                         std::thread::sleep(std::time::Duration::from_millis(
                             set_icon_on_theme_change::DELAY_MILLI_SECONDS,
@@ -148,20 +149,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                         let icon = get_icon_for_theme(window.theme());
 
-                        let result = icon.with(|icon| match tray_icon.set_icon(Some(icon.clone())) {
-                            Ok(_) => Some(()),
-                            Err(error) => {
-                                log::warn!("Error occured while trying to update the icon: {:#?}", error);
-
-                                None
-                            }
-                        });
-
-                        if result.is_some() {
+                        if let Err(error) = icon.with(|icon| tray_icon.set_icon(Some(icon.clone()))) {
+                            log::warn!("Error occured while trying to update the icon: {:#?}", error);
+                        } else {
                             break;
                         }
                     }
-                });
+                }
             }
 
             Event::UserEvent(UserEvent::MenuEvent(event)) => {
@@ -184,8 +178,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 } else if event.id == startup_i.id() {
                     match update_enabled_on_startup() {
-                        Ok(true) => startup_i.set_text(menu_item_text::DISABLE_STARTUP),
-                        Ok(false) => startup_i.set_text(menu_item_text::ENABLE_STARTUP),
+                        Ok(StartupStatus::Enabled) => startup_i.set_text(menu_item_text::DISABLE_STARTUP),
+                        Ok(StartupStatus::Disabled) => startup_i.set_text(menu_item_text::ENABLE_STARTUP),
                         Err(error) => {
                             MessageDialog::new()
                                 .set_level(rfd::MessageLevel::Error)
@@ -213,10 +207,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
             Event::UserEvent(UserEvent::ConfigurationReloaded(Ok(event))) => {
-                if let notify::EventKind::Modify(_) = event.kind {
-                    mm_manager.as_ref().inspect(|manager| {
-                        manager.on_configuration_change();
-                    });
+                if let notify::EventKind::Modify(_) = event.kind
+                    && let Some(manager) = mm_manager.as_ref()
+                {
+                    manager.on_configuration_change();
                 }
             }
 

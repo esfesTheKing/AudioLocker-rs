@@ -97,6 +97,7 @@ impl AudioManager {
                                 );
 
                                 let sender = sender.clone();
+                                let device_id = device_id.clone();
                                 thread::spawn(move || {
                                     std::thread::sleep(NON_ACTIVE_DEVICE_ADDED_SLEEP_TIME);
 
@@ -280,9 +281,10 @@ impl Drop for AudioManager {
         }
 
         if let Some(thread_handle) = self.thread_handle.take() {
-            match thread_handle.join() {
-                Ok(_) => log::debug!("Thread exited cleanly"),
-                Err(error) => log::error!("Internal thread has panicked with error {error:#?}"),
+            if let Err(error) = thread_handle.join() {
+                log::error!("Internal thread has panicked with error {error:#?}");
+            } else {
+                log::debug!("Thread exited cleanly");
             }
         } else {
             log::error!("thread_handle was not set");
