@@ -1,5 +1,3 @@
-pub const UTF16_NULL_TERMINATOR_LITTERAL: [u16; 1] = [0];
-
 pub const APPLICATION_NAME: &str = cfg_select! {
     not(debug_assertions) => "AudioLocker",
     debug_assertions => "AudioLocker-Debug",
@@ -7,6 +5,7 @@ pub const APPLICATION_NAME: &str = cfg_select! {
 
 pub const CONFIGURATION_FILENAME: &str = "settings.json";
 pub const DEFAULT_VOLUME_LEVEL: u8 = 10;
+pub const NON_ACTIVE_DEVICE_ADDED_SLEEP_TIME: std::time::Duration = std::time::Duration::from_secs(2);
 
 pub const WINDOWS_REGISTRY_AUTO_RUN_PATH: &str = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run";
 

@@ -10,7 +10,12 @@ pub fn is_enabled_on_startup() -> Result<bool, Box<dyn Error>> {
     Ok(key.get_type(APPLICATION_NAME).is_ok())
 }
 
-pub fn update_enabled_on_startup() -> Result<bool, Box<dyn Error>> {
+pub enum StartupStatus {
+    Enabled,
+    Disabled,
+}
+
+pub fn update_enabled_on_startup() -> Result<StartupStatus, Box<dyn Error>> {
     let tx = Transaction::new()?;
     let key = CURRENT_USER
         .options()
@@ -19,22 +24,20 @@ pub fn update_enabled_on_startup() -> Result<bool, Box<dyn Error>> {
         .transaction(&tx)
         .open(WINDOWS_REGISTRY_AUTO_RUN_PATH)?;
 
-    let action = match key.get_string(APPLICATION_NAME) {
-        Ok(_) => {
-            key.remove_value(APPLICATION_NAME)?;
+    let startup_status = if key.get_string(APPLICATION_NAME).is_ok() {
+        key.remove_value(APPLICATION_NAME)?;
 
-            Ok::<bool, Box<dyn Error>>(false)
-        }
-        Err(_) => {
-            key.set_hstring(
-                APPLICATION_NAME,
-                &windows_core::HSTRING::from(std::env::current_exe()?.as_path()),
-            )?;
+        StartupStatus::Disabled
+    } else {
+        key.set_hstring(
+            APPLICATION_NAME,
+            &windows_core::HSTRING::from(std::env::current_exe()?.as_path()),
+        )?;
 
-            Ok(true)
-        }
-    }?;
+        StartupStatus::Enabled
+    };
+
     tx.commit()?;
 
-    Ok(action)
+    Ok(startup_status)
 }

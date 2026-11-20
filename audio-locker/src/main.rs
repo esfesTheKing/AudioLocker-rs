@@ -1,14 +1,15 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod audio_manager;
 mod configuration;
 mod constants;
 mod logging;
 mod registry;
 mod utils;
-mod wrappers;
 
 use std::{error::Error, sync::Arc};
 
+use audio_manager::AudioManager;
 use named_lock::NamedLock;
 use notify::{Config, RecommendedWatcher, Watcher};
 use rfd::MessageDialog;
@@ -27,9 +28,8 @@ use crate::{
     configuration::Configuration,
     constants::{APPLICATION_NAME, menu_item_text, set_icon_on_theme_change},
     logging::{get_logging_directory, init_logging},
-    registry::{is_enabled_on_startup, update_enabled_on_startup},
+    registry::{StartupStatus, is_enabled_on_startup, update_enabled_on_startup},
     utils::{get_configuration_file_path, get_icon_for_theme},
-    wrappers::DeviceManager,
 };
 
 enum UserEvent {
@@ -45,18 +45,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let _logging_guard = init_logging()?;
 
     let lock = NamedLock::create(APPLICATION_NAME)?;
-    let _namedlock_guard = match lock.try_lock() {
-        Ok(v) => v,
-        Err(_) => {
-            MessageDialog::new()
-                .set_level(rfd::MessageLevel::Error)
-                .set_title("")
-                .set_description(format!("Another instance of {APPLICATION_NAME} already running"))
-                .set_buttons(rfd::MessageButtons::Ok)
-                .show();
+    let Ok(_namedlock_guard) = lock.try_lock() else {
+        MessageDialog::new()
+            .set_level(rfd::MessageLevel::Error)
+            .set_title("")
+            .set_description(format!("Another instance of {APPLICATION_NAME} already running"))
+            .set_buttons(rfd::MessageButtons::Ok)
+            .show();
 
-            return Ok(());
-        }
+        return Ok(());
     };
 
     let configuration_file_path = get_configuration_file_path()?;
@@ -68,7 +65,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     //  Rust's compiler thinks that FnMut can be called again, event though we drop on
     //  the 'Exit' event, rust can't know that at compile time.
     let mut mm_manager = {
-        let manager = DeviceManager::new(configuration.clone())?;
+        let manager = AudioManager::new(configuration.clone())?;
 
         log::info!("Initializing devices");
         manager.initialize_devices()?;
@@ -97,9 +94,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let settings_i = MenuItem::new(menu_item_text::SETTINGS, true, None);
 
-    let startup_i = match is_enabled_on_startup()? {
-        true => MenuItem::new(menu_item_text::DISABLE_STARTUP, true, None),
-        false => MenuItem::new(menu_item_text::ENABLE_STARTUP, true, None),
+    let startup_i = if is_enabled_on_startup()? {
+        MenuItem::new(menu_item_text::DISABLE_STARTUP, true, None)
+    } else {
+        MenuItem::new(menu_item_text::ENABLE_STARTUP, true, None)
     };
 
     let logs_i = MenuItem::new(menu_item_text::LOGS, true, None);
@@ -140,7 +138,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             } => {
                 log::info!("Theme change was detected changed to {theme:#?}");
 
-                tray_icon.as_ref().inspect(|tray_icon| {
+                if let Some(tray_icon) = tray_icon.as_ref() {
                     for _ in 0..set_icon_on_theme_change::RETRY_COUNT {
                         std::thread::sleep(std::time::Duration::from_millis(
                             set_icon_on_theme_change::DELAY_MILLI_SECONDS,
@@ -148,24 +146,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                         let icon = get_icon_for_theme(window.theme());
 
-                        let result = icon.with(|icon| {
-                            let result = match tray_icon.set_icon(Some(icon.clone())) {
-                                Ok(_) => Some(()),
-                                Err(error) => {
-                                    log::warn!("Error occured while trying to update the icon: {:#?}", error);
-
-                                    None
-                                }
-                            };
-
-                            result
-                        });
-
-                        if result.is_some() {
+                        if let Err(error) = icon.with(|icon| tray_icon.set_icon(Some(icon.clone()))) {
+                            log::warn!("Error occured while trying to update the icon: {error:#?}");
+                        } else {
                             break;
                         }
                     }
-                });
+                }
             }
 
             Event::UserEvent(UserEvent::MenuEvent(event)) => {
@@ -176,25 +163,25 @@ fn main() -> Result<(), Box<dyn Error>> {
                     *control_flow = ControlFlow::Exit;
                 } else if event.id == settings_i.id() {
                     match open::that(configuration.get_file_path()) {
-                        Ok(_) => log::info!("Opened configuration file"),
+                        Ok(()) => log::info!("Opened configuration file"),
                         Err(error) => {
                             MessageDialog::new()
                                 .set_level(rfd::MessageLevel::Error)
                                 .set_title("Failed opening configuration file")
-                                .set_description(format!("{:#?}", error))
+                                .set_description(format!("{error:#?}"))
                                 .set_buttons(rfd::MessageButtons::Ok)
                                 .show();
                         }
                     }
                 } else if event.id == startup_i.id() {
                     match update_enabled_on_startup() {
-                        Ok(true) => startup_i.set_text(menu_item_text::DISABLE_STARTUP),
-                        Ok(false) => startup_i.set_text(menu_item_text::ENABLE_STARTUP),
+                        Ok(StartupStatus::Enabled) => startup_i.set_text(menu_item_text::DISABLE_STARTUP),
+                        Ok(StartupStatus::Disabled) => startup_i.set_text(menu_item_text::ENABLE_STARTUP),
                         Err(error) => {
                             MessageDialog::new()
                                 .set_level(rfd::MessageLevel::Error)
                                 .set_title("Error occured while trying to update registry")
-                                .set_description(format!("{:#?}", error))
+                                .set_description(format!("{error:#?}"))
                                 .set_buttons(rfd::MessageButtons::Ok)
                                 .show();
                         }
@@ -203,12 +190,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                     && let Ok(logs_dir) = get_logging_directory()
                 {
                     match open::that(logs_dir) {
-                        Ok(_) => log::info!("Opened logs"),
+                        Ok(()) => log::info!("Opened logs"),
                         Err(error) => {
                             MessageDialog::new()
                                 .set_level(rfd::MessageLevel::Error)
                                 .set_title("Unable to open logs directory")
-                                .set_description(format!("{:#?}", error))
+                                .set_description(format!("{error:#?}"))
                                 .set_buttons(rfd::MessageButtons::Ok)
                                 .show();
                         }
@@ -217,10 +204,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
             Event::UserEvent(UserEvent::ConfigurationReloaded(Ok(event))) => {
-                if let notify::EventKind::Modify(_) = event.kind {
-                    mm_manager.as_ref().inspect(|manager| {
-                        manager.on_configuration_change();
-                    });
+                if let notify::EventKind::Modify(_) = event.kind
+                    && let Some(manager) = mm_manager.as_ref()
+                {
+                    manager.on_configuration_change();
                 }
             }
 
