@@ -11,7 +11,7 @@ use tracing_subscriber::{Registry, fmt, prelude::*};
 pub fn get_logging_directory() -> Result<String, Box<dyn Error>> {
     let appdata = std::env::var("APPDATA")?;
 
-    Ok(format!("{}/{}/logs", appdata, APPLICATION_NAME))
+    Ok(format!("{appdata}/{APPLICATION_NAME}/logs"))
 }
 
 pub fn init_logging() -> Result<WorkerGuard, Box<dyn Error>> {

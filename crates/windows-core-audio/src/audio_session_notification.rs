@@ -13,7 +13,7 @@ pub struct AudioSessionNotification {
 }
 
 impl AudioSessionNotification {
-    pub fn new(device_id: Arc<str>, sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>) -> Self {
+    pub const fn new(device_id: Arc<str>, sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>) -> Self {
         Self { device_id, sender }
     }
 }

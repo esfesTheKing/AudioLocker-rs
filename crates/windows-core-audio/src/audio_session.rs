@@ -23,6 +23,7 @@ pub struct AudioSession {
 unsafe impl Send for AudioSession {}
 
 impl AudioSession {
+    #[allow(clippy::needless_pass_by_value)]
     pub fn new(audio_session: IAudioSessionControl) -> windows_core::Result<Self> {
         unsafe { Self::internal_new(audio_session.cast()?) }
     }
@@ -111,6 +112,6 @@ impl Drop for AudioSession {
     fn drop(&mut self) {
         log::debug!("Dropping audio sesion");
 
-        self.unregister_event_handler()
+        self.unregister_event_handler();
     }
 }

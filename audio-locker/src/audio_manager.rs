@@ -97,7 +97,6 @@ impl AudioManager {
                                 );
 
                                 let sender = sender.clone();
-                                let device_id = device_id.clone();
                                 thread::spawn(move || {
                                     std::thread::sleep(NON_ACTIVE_DEVICE_ADDED_SLEEP_TIME);
 

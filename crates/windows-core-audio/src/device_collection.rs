@@ -12,7 +12,7 @@ pub struct DeviceCollectionIterator<'a> {
 }
 
 impl DeviceCollection {
-    pub fn new(collection: IMMDeviceCollection) -> Self {
+    pub const fn new(collection: IMMDeviceCollection) -> Self {
         Self { collection }
     }
 
@@ -20,7 +20,7 @@ impl DeviceCollection {
         unsafe { self.collection.GetCount() }
     }
 
-    pub fn iter(&self) -> DeviceCollectionIterator<'_> {
+    pub const fn iter(&self) -> DeviceCollectionIterator<'_> {
         DeviceCollectionIterator {
             collection: self,
             index: 0,

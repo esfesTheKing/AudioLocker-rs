@@ -12,7 +12,7 @@ pub struct AudioSessionCollectionIterator<'a> {
 }
 
 impl AudioSessionCollection {
-    pub fn new(enumerator: IAudioSessionEnumerator) -> Self {
+    pub const fn new(enumerator: IAudioSessionEnumerator) -> Self {
         Self { enumerator }
     }
 
@@ -20,7 +20,7 @@ impl AudioSessionCollection {
         unsafe { self.enumerator.GetCount() }
     }
 
-    pub fn iter(&self) -> AudioSessionCollectionIterator<'_> {
+    pub const fn iter(&self) -> AudioSessionCollectionIterator<'_> {
         AudioSessionCollectionIterator {
             collection: self,
             index: 0,

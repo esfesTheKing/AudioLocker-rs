@@ -15,7 +15,7 @@ pub struct AudioSessionEventsHandler {
 }
 
 impl AudioSessionEventsHandler {
-    pub fn new(
+    pub const fn new(
         device_id: Arc<str>,
         session_name: Arc<str>,
         sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>,

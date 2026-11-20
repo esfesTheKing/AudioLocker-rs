@@ -15,7 +15,7 @@ pub struct MMNotificationClient {
 }
 
 impl MMNotificationClient {
-    pub fn new(sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>, enabled: AtomicBool) -> Self {
+    pub const fn new(sender: crossbeam_channel::Sender<WindowsCoreAudioEvent>, enabled: AtomicBool) -> Self {
         Self { sender, enabled }
     }
 
@@ -44,7 +44,7 @@ impl IMMNotificationClient_Impl for MMNotificationClient_Impl {
             }
             DEVICE_STATE_ACTIVE => self.OnDeviceAdded(pwstrdeviceid),
             _ => {
-                log::warn!("Unknown state '{:#?}' for {}", dwnewstate, unsafe {
+                log::warn!("Unknown state '{dwnewstate:#?}' for {}", unsafe {
                     pwstrdeviceid.to_string()?
                 });
                 Ok(())
@@ -65,7 +65,7 @@ impl IMMNotificationClient_Impl for MMNotificationClient_Impl {
         if self.sender.send(event).is_err() {
             log::error!(
                 "When trying to send `DeviceAdded` event the channel seems to be disconnected, this should never happen."
-            )
+            );
         }
 
         Ok(())
@@ -84,7 +84,7 @@ impl IMMNotificationClient_Impl for MMNotificationClient_Impl {
         if self.sender.send(event).is_err() {
             log::error!(
                 "When trying to send `DeviceRemoved` event the channel seems to be disconnected, this should never happen."
-            )
+            );
         }
 
         Ok(())

@@ -83,6 +83,7 @@ impl Device {
     pub fn register_notifications(&mut self, notification: AudioSessionNotification) -> windows_core::Result<()> {
         self.session_manager.register_notifications(notification)
     }
+
     pub fn get_sessions(&self) -> windows_core::Result<AudioSessionCollection> {
         self.session_manager.get_sessions()
     }

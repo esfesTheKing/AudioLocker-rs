@@ -45,18 +45,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let _logging_guard = init_logging()?;
 
     let lock = NamedLock::create(APPLICATION_NAME)?;
-    let _namedlock_guard = match lock.try_lock() {
-        Ok(v) => v,
-        Err(_) => {
-            MessageDialog::new()
-                .set_level(rfd::MessageLevel::Error)
-                .set_title("")
-                .set_description(format!("Another instance of {APPLICATION_NAME} already running"))
-                .set_buttons(rfd::MessageButtons::Ok)
-                .show();
+    let Ok(_namedlock_guard) = lock.try_lock() else {
+        MessageDialog::new()
+            .set_level(rfd::MessageLevel::Error)
+            .set_title("")
+            .set_description(format!("Another instance of {APPLICATION_NAME} already running"))
+            .set_buttons(rfd::MessageButtons::Ok)
+            .show();
 
-            return Ok(());
-        }
+        return Ok(());
     };
 
     let configuration_file_path = get_configuration_file_path()?;
@@ -150,7 +147,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         let icon = get_icon_for_theme(window.theme());
 
                         if let Err(error) = icon.with(|icon| tray_icon.set_icon(Some(icon.clone()))) {
-                            log::warn!("Error occured while trying to update the icon: {:#?}", error);
+                            log::warn!("Error occured while trying to update the icon: {error:#?}");
                         } else {
                             break;
                         }
@@ -166,12 +163,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                     *control_flow = ControlFlow::Exit;
                 } else if event.id == settings_i.id() {
                     match open::that(configuration.get_file_path()) {
-                        Ok(_) => log::info!("Opened configuration file"),
+                        Ok(()) => log::info!("Opened configuration file"),
                         Err(error) => {
                             MessageDialog::new()
                                 .set_level(rfd::MessageLevel::Error)
                                 .set_title("Failed opening configuration file")
-                                .set_description(format!("{:#?}", error))
+                                .set_description(format!("{error:#?}"))
                                 .set_buttons(rfd::MessageButtons::Ok)
                                 .show();
                         }
@@ -184,7 +181,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             MessageDialog::new()
                                 .set_level(rfd::MessageLevel::Error)
                                 .set_title("Error occured while trying to update registry")
-                                .set_description(format!("{:#?}", error))
+                                .set_description(format!("{error:#?}"))
                                 .set_buttons(rfd::MessageButtons::Ok)
                                 .show();
                         }
@@ -193,12 +190,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                     && let Ok(logs_dir) = get_logging_directory()
                 {
                     match open::that(logs_dir) {
-                        Ok(_) => log::info!("Opened logs"),
+                        Ok(()) => log::info!("Opened logs"),
                         Err(error) => {
                             MessageDialog::new()
                                 .set_level(rfd::MessageLevel::Error)
                                 .set_title("Unable to open logs directory")
-                                .set_description(format!("{:#?}", error))
+                                .set_description(format!("{error:#?}"))
                                 .set_buttons(rfd::MessageButtons::Ok)
                                 .show();
                         }

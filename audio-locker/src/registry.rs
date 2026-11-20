@@ -10,7 +10,7 @@ pub fn is_enabled_on_startup() -> Result<bool, Box<dyn Error>> {
     Ok(key.get_type(APPLICATION_NAME).is_ok())
 }
 
-pub(crate) enum StartupStatus {
+pub enum StartupStatus {
     Enabled,
     Disabled,
 }

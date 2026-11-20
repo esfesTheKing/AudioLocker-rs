@@ -6,7 +6,7 @@ pub struct SimpleAudioVolume {
 }
 
 impl SimpleAudioVolume {
-    pub fn new(audio_volume: ISimpleAudioVolume) -> Self {
+    pub const fn new(audio_volume: ISimpleAudioVolume) -> Self {
         Self { audio_volume }
     }
 
